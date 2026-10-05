@@ -1,8 +1,8 @@
 # Inowo API
 
-Off-chain API for Inowo — handles indexing, notifications, and media for the Stellar event platform.
+Read API for [Inowo](https://github.com/inowo-labs/inowo-Contract) — sponsorship escrow and accountable event budgets on Stellar.
 
-The smart contract is the source of truth for all on-chain state. This API layers on top of it to provide faster queries, event-driven notifications, and services that can't run on-chain.
+The smart contract is the source of truth for all funds and records. This API reads contract state over Soroban RPC and serves it as JSON, so clients don't need to talk to the chain directly. It is read-only: all writes are signed by the user's wallet and sent straight to the contract.
 
 ## Getting started
 
@@ -42,6 +42,7 @@ npm run build
 - **Runtime:** Node.js
 - **Framework:** Express
 - **Language:** TypeScript
+- **Chain access:** `@stellar/stellar-sdk` (Soroban RPC simulation)
 
 ## API Reference
 
@@ -63,14 +64,19 @@ All write operations (buy ticket, sponsor, create event) happen directly on-chai
 
 ## Open for contributors
 
-- Integrate `@stellar/stellar-sdk` to query the contract
-- Index events into a local database for fast listing
-- Email / push notifications for ticket purchases and event updates
-- Image upload endpoint for event media (S3 or similar)
+- Cache RPC responses to cut latency and load
+- Pagination and status filtering for `GET /api/events`
+- Index contract events into a database for fast listing and history
+- Payout and refund history endpoints (once the contract supports them)
+- Notifications for sponsorships, ticket purchases, and event updates
 
 See the [Issues](https://github.com/inowo-labs/inowo-api/issues) tab for scoped tasks.
 
 ## Related repos
 
-- [Inowo contract](https://github.com/inowo-labs/inowo-Contract) — Soroban smart contract (Rust)
-- [Inowo App](https://github.com/inowo-labs/inowo-app) — frontend (Next.js)
+- [inowo-Contract](https://github.com/inowo-labs/inowo-Contract) — Soroban smart contract (Rust)
+- [inowo-app](https://github.com/inowo-labs/inowo-app) — web frontend (Next.js)
+
+## License
+
+[MIT](./LICENSE)
