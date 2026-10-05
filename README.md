@@ -1,6 +1,6 @@
-# NovaEvents API
+# Inowo API
 
-Off-chain API for NovaEvents — handles indexing, notifications, and media for the Stellar event platform.
+Off-chain API for Inowo — handles indexing, notifications, and media for the Stellar event platform.
 
 The smart contract is the source of truth for all on-chain state. This API layers on top of it to provide faster queries, event-driven notifications, and services that can't run on-chain.
 
@@ -68,9 +68,9 @@ All write operations (buy ticket, sponsor, create event) happen directly on-chai
 - Email / push notifications for ticket purchases and event updates
 - Image upload endpoint for event media (S3 or similar)
 
-See the [Issues](https://github.com/inowo-labs/NovaEvent-api/issues) tab for scoped tasks.
+See the [Issues](https://github.com/inowo-labs/inowo-api/issues) tab for scoped tasks.
 
 ## Related repos
 
-- [NovaEvents contract](https://github.com/inowo-labs/NovaEvents-Contract) — Soroban smart contract (Rust)
-- [NovaEvents App](https://github.com/inowo-labs/NovaEvents-app) — frontend (Next.js)
+- [Inowo contract](https://github.com/inowo-labs/inowo-Contract) — Soroban smart contract (Rust)
+- [Inowo App](https://github.com/inowo-labs/inowo-app) — frontend (Next.js)

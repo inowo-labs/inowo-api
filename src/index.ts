@@ -9,7 +9,7 @@ import eventsRouter from "./routes/events";
 import { errorHandler } from "./middleware/errorHandler";
 import { requestLogger } from "./middleware/requestLogger";
 
-const REQUIRED_ENV = ["STELLAR_RPC_URL", "NOVA_EVENTS_CONTRACT_ID"];
+const REQUIRED_ENV = ["STELLAR_RPC_URL", "INOWO_CONTRACT_ID"];
 const missing = REQUIRED_ENV.filter((k) => !process.env[k]);
 if (missing.length > 0) {
   console.error(`Missing required env vars: ${missing.join(", ")}`);
@@ -45,7 +45,7 @@ app.get("/health", (_req, res) => {
     version: process.env.npm_package_version ?? "unknown",
     uptimeSeconds: Math.floor((Date.now() - startedAt) / 1000),
     network: process.env.STELLAR_RPC_URL,
-    contractId: process.env.NOVA_EVENTS_CONTRACT_ID,
+    contractId: process.env.INOWO_CONTRACT_ID,
   });
 });
 
@@ -53,7 +53,7 @@ app.use("/api/events", eventsRouter);
 app.use(errorHandler);
 
 app.listen(PORT, () => {
-  console.log(`NovaEvents API running on port ${PORT}`);
+  console.log(`Inowo API running on port ${PORT}`);
 });
 
 export default app;

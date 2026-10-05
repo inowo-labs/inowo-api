@@ -1,7 +1,7 @@
 {
-  "name": "novaevents-api",
+  "name": "inowo-api",
   "version": "1.0.0",
-  "description": "Off-chain API for NovaEvents — notifications, indexing, and media for the Stellar event platform",
+  "description": "Off-chain API for Inowo — notifications, indexing, and media for the Stellar event platform",
   "main": "dist/index.js",
   "scripts": {
     "dev": "ts-node-dev --respawn --transpile-only src/index.ts",
