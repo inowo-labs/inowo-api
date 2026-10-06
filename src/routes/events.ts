@@ -1,9 +1,12 @@
-import { Router, Request, Response, NextFunction } from "express";
+import { Router, Request, Response } from "express";
 import { xdr } from "@stellar/stellar-sdk";
 import rateLimit from "express-rate-limit";
 import { simulateContractCall } from "../lib/stellar";
-import { validateEventId } from "../middleware/validateEventId";
+import { serializeBigInt, serializeEvent } from "../lib/serialize";
+import { isU32, validateEventId } from "../middleware/validateEventId";
 
+// Express 5 forwards rejected promises from async handlers to errorHandler,
+// which maps contract error codes to HTTP statuses.
 const router = Router();
 
 // Stricter limiter for GET /api/events — fans out N RPC simulations
@@ -15,203 +18,92 @@ const eventsListLimiter = rateLimit({
   message: { error: "Too many requests, please try again later." },
 });
 
-router.get("/count", async (_req: Request, res: Response, next: NextFunction) => {
-  try {
-    const count = await simulateContractCall("event_count");
-    res.json({ count: Number(count) });
-  } catch (err) {
-    next(err);
-  }
+const u32 = (value: string) => xdr.ScVal.scvU32(Number(value));
+
+router.get("/count", async (_req: Request, res: Response) => {
+  const count = await simulateContractCall("event_count");
+  res.json({ count: Number(count) });
 });
 
-router.get("/", eventsListLimiter, async (req: Request, res: Response, next: NextFunction) => {
-  try {
-    const count = (await simulateContractCall("event_count")) as number;
-    const events = await Promise.all(
-      Array.from({ length: count }, (_, i) =>
-        simulateContractCall("get_event", xdr.ScVal.scvU32(i)).then((e) => ({
-          id: i,
-          ...(e as object),
-        }))
-      )
-    );
+router.get("/", eventsListLimiter, async (req: Request, res: Response) => {
+  const count = Number(await simulateContractCall("event_count"));
+  const events = await Promise.all(
+    Array.from({ length: count }, async (_, id) => ({
+      id,
+      ...serializeEvent(await simulateContractCall("get_event", xdr.ScVal.scvU32(id))),
+    }))
+  );
 
-    const { sort } = req.query;
-    if (sort === "date") {
-      events.sort((a: any, b: any) => Number(a.date_unix) - Number(b.date_unix));
-    } else if (sort === "goal") {
-      events.sort((a: any, b: any) => Number(b.funding_goal) - Number(a.funding_goal));
-    }
-
-    res.json(serializeBigInt(events));
-  } catch (err) {
-    next(err);
+  const { sort } = req.query;
+  if (sort === "date") {
+    events.sort((a, b) => a.date_unix - b.date_unix);
+  } else if (sort === "goal") {
+    events.sort((a, b) => Number(b.funding_goal) - Number(a.funding_goal));
   }
+
+  res.json(events);
 });
 
-router.get(
-  "/:id",
-  validateEventId,
-  async (req: Request, res: Response, next: NextFunction) => {
-    try {
-      const id = Number(req.params.id);
-      const event = await simulateContractCall("get_event", xdr.ScVal.scvU32(id));
-      res.json(serializeBigInt(event));
-    } catch (err: unknown) {
-      if (err instanceof Error && err.message.includes("event not found")) {
-        res.status(404).json({ error: "event not found" });
-      } else {
-        next(err);
-      }
-    }
-  }
-);
+router.get("/:id", validateEventId, async (req: Request, res: Response) => {
+  const event = await simulateContractCall("get_event", u32(req.params.id as string));
+  res.json({ id: Number(req.params.id), ...serializeEvent(event) });
+});
 
-router.get(
-  "/:id/status",
-  validateEventId,
-  async (req: Request, res: Response, next: NextFunction) => {
-    try {
-      const id = Number(req.params.id);
-      const event = await simulateContractCall("get_event", xdr.ScVal.scvU32(id)) as any;
-      res.json({ event_id: id, status: Object.keys(event.status)[0] });
-    } catch (err: unknown) {
-      if (err instanceof Error && err.message.includes("event not found")) {
-        res.status(404).json({ error: "event not found" });
-      } else {
-        next(err);
-      }
-    }
-  }
-);
+router.get("/:id/status", validateEventId, async (req: Request, res: Response) => {
+  const event = await simulateContractCall("get_event", u32(req.params.id as string));
+  res.json({ event_id: Number(req.params.id), status: serializeEvent(event).status });
+});
 
-router.get(
-  "/:id/organizer",
-  validateEventId,
-  async (req: Request, res: Response, next: NextFunction) => {
-    try {
-      const id = Number(req.params.id);
-      const event = await simulateContractCall("get_event", xdr.ScVal.scvU32(id));
-      const serialized = serializeBigInt(event) as any;
-      res.json({ event_id: id, organizer: String(serialized.organizer) });
-    } catch (err: unknown) {
-      if (err instanceof Error && err.message.includes("event not found")) {
-        res.status(404).json({ error: "event not found" });
-      } else {
-        next(err);
-      }
-    }
-  }
-);
+router.get("/:id/organizer", validateEventId, async (req: Request, res: Response) => {
+  const organizer = await simulateContractCall("get_organizer", u32(req.params.id as string));
+  res.json({ event_id: Number(req.params.id), organizer: String(organizer) });
+});
 
-router.get(
-  "/:id/balance",
-  validateEventId,
-  async (req: Request, res: Response, next: NextFunction) => {
-    try {
-      const id = Number(req.params.id);
-      const event = await simulateContractCall("get_event", xdr.ScVal.scvU32(id)) as any;
-      const serialized = serializeBigInt(event) as any;
-      res.json({
-        event_id: id,
-        balance: serialized.balance,
-        funding_goal: serialized.funding_goal,
-      });
-    } catch (err: unknown) {
-      if (err instanceof Error && err.message.includes("event not found")) {
-        res.status(404).json({ error: "event not found" });
-      } else {
-        next(err);
-      }
-    }
-  }
-);
+router.get("/:id/balance", validateEventId, async (req: Request, res: Response) => {
+  const event = serializeEvent(
+    await simulateContractCall("get_event", u32(req.params.id as string))
+  );
+  res.json({
+    event_id: Number(req.params.id),
+    balance: event.balance,
+    funding_goal: event.funding_goal,
+  });
+});
 
-router.get(
-  "/:id/tiers",
-  validateEventId,
-  async (req: Request, res: Response, next: NextFunction) => {
-    try {
-      const id = Number(req.params.id);
-      const tiers = await simulateContractCall("get_tiers", xdr.ScVal.scvU32(id));
-      res.json(serializeBigInt(tiers));
-    } catch (err: unknown) {
-      if (err instanceof Error && err.message.includes("tiers not found")) {
-        res.status(404).json({ error: "event not found" });
-      } else {
-        next(err);
-      }
-    }
-  }
-);
+router.get("/:id/tiers", validateEventId, async (req: Request, res: Response) => {
+  const tiers = await simulateContractCall("get_tiers", u32(req.params.id as string));
+  res.json(serializeBigInt(tiers));
+});
 
-router.get(
-  "/:id/sponsorships",
-  validateEventId,
-  async (req: Request, res: Response, next: NextFunction) => {
-    try {
-      const id = Number(req.params.id);
-      const sponsorships = await simulateContractCall("get_sponsorships", xdr.ScVal.scvU32(id));
-      res.json(serializeBigInt(sponsorships));
-    } catch (err) {
-      next(err);
-    }
-  }
-);
+router.get("/:id/sponsorships", validateEventId, async (req: Request, res: Response) => {
+  const sponsorships = await simulateContractCall(
+    "get_sponsorships",
+    u32(req.params.id as string)
+  );
+  res.json(serializeBigInt(sponsorships));
+});
 
-router.get(
-  "/:id/ticket-count",
-  validateEventId,
-  async (req: Request, res: Response, next: NextFunction) => {
-    try {
-      const id = Number(req.params.id);
-      const count = await simulateContractCall("ticket_count", xdr.ScVal.scvU32(id));
-      res.json({ event_id: id, ticket_count: Number(count) });
-    } catch (err) {
-      next(err);
-    }
-  }
-);
+router.get("/:id/ticket-count", validateEventId, async (req: Request, res: Response) => {
+  const count = await simulateContractCall("ticket_count", u32(req.params.id as string));
+  res.json({ event_id: Number(req.params.id), ticket_count: Number(count) });
+});
 
 router.get(
   "/:id/tickets/:ticketId",
   validateEventId,
-  async (req: Request, res: Response, next: NextFunction) => {
-    const ticketId = Number(req.params.ticketId);
-    if (!Number.isInteger(ticketId) || ticketId < 0) {
+  async (req: Request, res: Response) => {
+    const ticketId = req.params.ticketId as string;
+    if (!isU32(ticketId)) {
       res.status(400).json({ error: "ticket id must be a non-negative integer" });
       return;
     }
-    try {
-      const id = Number(req.params.id);
-      const ticket = await simulateContractCall(
-        "get_ticket",
-        xdr.ScVal.scvU32(id),
-        xdr.ScVal.scvU32(ticketId)
-      );
-      res.json(serializeBigInt(ticket));
-    } catch (err: unknown) {
-      if (err instanceof Error && err.message.includes("ticket not found")) {
-        res.status(404).json({ error: "ticket not found" });
-      } else {
-        next(err);
-      }
-    }
+    const ticket = await simulateContractCall(
+      "get_ticket",
+      u32(req.params.id as string),
+      u32(ticketId)
+    );
+    res.json(serializeBigInt(ticket));
   }
 );
-
-function serializeBigInt(value: unknown): unknown {
-  if (typeof value === "bigint") return value.toString();
-  if (Array.isArray(value)) return value.map(serializeBigInt);
-  if (value !== null && typeof value === "object") {
-    return Object.fromEntries(
-      Object.entries(value as Record<string, unknown>).map(([k, v]) => [
-        k,
-        serializeBigInt(v),
-      ])
-    );
-  }
-  return value;
-}
 
 export default router;
