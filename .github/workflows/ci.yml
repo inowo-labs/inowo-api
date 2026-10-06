@@ -8,7 +8,7 @@ on:
 
 jobs:
   build:
-    name: Type Check & Build
+    name: Type Check, Test & Build
     runs-on: ubuntu-latest
 
     steps:
@@ -17,11 +17,17 @@ jobs:
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: '22'
           cache: 'npm'
 
       - name: Install dependencies
         run: npm ci
+
+      - name: Type check (including tests)
+        run: npm run typecheck
+
+      - name: Test
+        run: npm test
 
       - name: Build
         run: npm run build

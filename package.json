@@ -1,13 +1,17 @@
 {
   "name": "inowo-api",
   "version": "1.0.0",
-  "description": "Off-chain API for Inowo — notifications, indexing, and media for the Stellar event platform",
+  "description": "Read API serving Inowo contract state as JSON over Soroban RPC",
   "main": "dist/index.js",
+  "engines": {
+    "node": ">=22.12"
+  },
   "scripts": {
     "dev": "ts-node-dev --respawn --transpile-only src/index.ts",
     "build": "tsc",
     "start": "node dist/index.js",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit -p tsconfig.test.json"
   },
   "keywords": [],
   "author": "",
@@ -28,7 +32,10 @@
     "@types/express": "^5.0.6",
     "@types/helmet": "^0.0.48",
     "@types/node": "^25.9.1",
+    "@types/supertest": "^7.2.1",
+    "supertest": "^7.3.1",
     "ts-node-dev": "^2.0.0",
-    "typescript": "^6.0.3"
+    "typescript": "^6.0.3",
+    "vitest": "^5.0.3"
   }
 }

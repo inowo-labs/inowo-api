@@ -8,7 +8,7 @@ The smart contract is the source of truth for all funds and records. This API re
 
 ### Prerequisites
 
-- Node.js 20+
+- Node.js 22.12+
 - npm
 
 ### Install dependencies
@@ -29,6 +29,13 @@ cp .env.example .env
 ```bash
 npm run dev
 # API runs at http://localhost:3001
+```
+
+### Test
+
+```bash
+npm test           # unit + route tests (RPC is mocked, no network needed)
+npm run typecheck  # type-checks src and tests
 ```
 
 ### Build
@@ -61,6 +68,19 @@ npm run build
 | `GET` | `/api/events/:id/tickets/:ticketId` | Single ticket |
 
 All write operations (buy ticket, sponsor, create event) happen directly on-chain through the contract — not through this API.
+
+### Error responses
+
+Errors are always JSON: `{ "error": "<message>" }`, plus `code` when the contract returned a [contract error code](https://github.com/inowo-labs/inowo-Contract#errors).
+
+| Status | When |
+|--------|------|
+| `400` | Invalid path parameter, or the contract rejected the call (body includes `code`) |
+| `404` | Event or ticket does not exist (contract codes `3` / `4`), or unknown route |
+| `429` | Rate limit exceeded |
+| `500` | Unexpected error — details are logged server-side, never returned |
+| `502` | The Soroban RPC endpoint could not be reached |
+| `504` | The Soroban RPC call timed out |
 
 ## Open for contributors
 
