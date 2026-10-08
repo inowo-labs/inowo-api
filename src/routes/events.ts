@@ -2,7 +2,7 @@ import { Router, Request, Response } from "express";
 import { xdr } from "@stellar/stellar-sdk";
 import rateLimit from "express-rate-limit";
 import { simulateContractCall } from "../lib/stellar";
-import { serializeBigInt, serializeEvent } from "../lib/serialize";
+import { serializeBigInt, serializeEvent, serializePayout } from "../lib/serialize";
 import { isU32, validateEventId } from "../middleware/validateEventId";
 
 // Express 5 forwards rejected promises from async handlers to errorHandler,
@@ -60,14 +60,32 @@ router.get("/:id/organizer", validateEventId, async (req: Request, res: Response
 });
 
 router.get("/:id/balance", validateEventId, async (req: Request, res: Response) => {
-  const event = serializeEvent(
-    await simulateContractCall("get_event", u32(req.params.id as string))
-  );
+  const id = u32(req.params.id as string);
+  const [rawEvent, released] = await Promise.all([
+    simulateContractCall("get_event", id),
+    simulateContractCall("total_released", id),
+  ]);
+  const event = serializeEvent(rawEvent);
   res.json({
     event_id: Number(req.params.id),
     balance: event.balance,
     funding_goal: event.funding_goal,
+    total_released: String(released),
   });
+});
+
+router.get("/:id/payouts", validateEventId, async (req: Request, res: Response) => {
+  const id = u32(req.params.id as string);
+  const count = Number(await simulateContractCall("payout_count", id));
+  const payouts = await Promise.all(
+    Array.from({ length: count }, async (_, payoutId) =>
+      serializePayout(
+        payoutId,
+        await simulateContractCall("get_payout", id, xdr.ScVal.scvU32(payoutId))
+      )
+    )
+  );
+  res.json(payouts);
 });
 
 router.get("/:id/tiers", validateEventId, async (req: Request, res: Response) => {

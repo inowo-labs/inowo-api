@@ -9,6 +9,7 @@ import {
 const NOT_FOUND_MESSAGES: Record<number, string> = {
   [ContractErrorCode.EventNotFound]: "event not found",
   [ContractErrorCode.TicketNotFound]: "ticket not found",
+  [ContractErrorCode.PayoutNotFound]: "payout not found",
 };
 
 export function errorHandler(

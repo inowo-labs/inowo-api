@@ -194,3 +194,64 @@ describe("request logger", () => {
     expect(second.status).toBe(200);
   });
 });
+
+describe("GET /api/events/:id/payouts", () => {
+  it("lists payouts with ids, string amounts, and numeric timestamps", async () => {
+    const payouts = [
+      { recipient: "GVENUE", amount: 25_000_000n, memo: "Venue hire", timestamp: 1_790_500_000n },
+      { recipient: "GCREW", amount: 15_000_000n, memo: "AV crew", timestamp: 1_790_500_100n },
+    ];
+    mockCalls({
+      payout_count: () => 2,
+      get_payout: () => payouts.shift(),
+    });
+
+    const res = await request(app).get("/api/events/1/payouts");
+
+    expect(res.status).toBe(200);
+    expect(res.body).toEqual([
+      { id: 0, recipient: "GVENUE", amount: "25000000", memo: "Venue hire", timestamp: 1_790_500_000 },
+      { id: 1, recipient: "GCREW", amount: "15000000", memo: "AV crew", timestamp: 1_790_500_100 },
+    ]);
+  });
+
+  it("returns an empty list when nothing has been released", async () => {
+    mockCalls({ payout_count: () => 0 });
+
+    const res = await request(app).get("/api/events/0/payouts");
+
+    expect(res.status).toBe(200);
+    expect(res.body).toEqual([]);
+  });
+
+  it("returns 404 for a missing event", async () => {
+    mockCalls({
+      payout_count: () => {
+        throw new ContractError(ContractErrorCode.EventNotFound);
+      },
+    });
+
+    const res = await request(app).get("/api/events/99/payouts");
+
+    expect(res.status).toBe(404);
+  });
+});
+
+describe("GET /api/events/:id/balance", () => {
+  it("includes the total released from escrow", async () => {
+    mockCalls({
+      get_event: () => rawEvent({ balance: 0n, funding_goal: 200_000_000n }),
+      total_released: () => 40_000_000n,
+    });
+
+    const res = await request(app).get("/api/events/1/balance");
+
+    expect(res.status).toBe(200);
+    expect(res.body).toEqual({
+      event_id: 1,
+      balance: "0",
+      funding_goal: "200000000",
+      total_released: "40000000",
+    });
+  });
+});
