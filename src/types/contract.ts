@@ -26,9 +26,20 @@ export interface Ticket {
   tier_index: number;
   owner: string;
   redeemed: boolean;
+  price_paid: string;
+  refunded: boolean;
 }
 
 export interface Sponsorship {
   sponsor: string;
   amount: string;
+}
+
+export interface Payout {
+  id: number;
+  recipient: string;
+  amount: string;
+  memo: string;
+  /** Unix timestamp (seconds) of the release. */
+  timestamp: number;
 }

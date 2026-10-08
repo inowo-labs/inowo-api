@@ -61,9 +61,10 @@ npm run build
 | `GET` | `/api/events/:id` | Single event by ID |
 | `GET` | `/api/events/:id/status` | Event status only |
 | `GET` | `/api/events/:id/organizer` | Organizer address |
-| `GET` | `/api/events/:id/balance` | Current balance vs funding goal |
+| `GET` | `/api/events/:id/balance` | Escrow balance, funding goal, and total released |
 | `GET` | `/api/events/:id/tiers` | All ticket tiers |
 | `GET` | `/api/events/:id/sponsorships` | All sponsorships |
+| `GET` | `/api/events/:id/payouts` | All payouts released from escrow, with memos |
 | `GET` | `/api/events/:id/ticket-count` | Total tickets sold |
 | `GET` | `/api/events/:id/tickets/:ticketId` | Single ticket |
 
@@ -87,7 +88,7 @@ Errors are always JSON: `{ "error": "<message>" }`, plus `code` when the contrac
 - Cache RPC responses to cut latency and load
 - Pagination and status filtering for `GET /api/events`
 - Index contract events into a database for fast listing and history
-- Payout and refund history endpoints (once the contract supports them)
+- Refund history endpoint (from `ticket_refunded` / `sponsorship_refunded` contract events)
 - Notifications for sponsorships, ticket purchases, and event updates
 
 See the [Issues](https://github.com/inowo-labs/inowo-api/issues) tab for scoped tasks.

@@ -14,6 +14,14 @@ export const ContractErrorCode = {
   TierSoldOut: 12,
   AlreadyRedeemed: 13,
   InvalidAmount: 14,
+  EventNotCancelled: 15,
+  NotTicketOwner: 16,
+  AlreadyRefunded: 17,
+  NothingToRefund: 18,
+  EventNotEnded: 19,
+  InsufficientFunds: 20,
+  InvalidMemo: 21,
+  PayoutNotFound: 22,
 } as const;
 
 const NAMES = Object.fromEntries(
