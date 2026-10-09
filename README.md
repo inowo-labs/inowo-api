@@ -85,11 +85,16 @@ Errors are always JSON: `{ "error": "<message>" }`, plus `code` when the contrac
 
 ## Open for contributors
 
-- Cache RPC responses to cut latency and load
-- Pagination and status filtering for `GET /api/events`
-- Index contract events into a database for fast listing and history
-- Refund history endpoint (from `ticket_refunded` / `sponsorship_refunded` contract events)
-- Notifications for sponsorships, ticket purchases, and event updates
+| Feature | Difficulty | Issue |
+|---------|------------|-------|
+| Index contract events into a database for fast listing and history | Hard | [#42](https://github.com/inowo-labs/inowo-api/issues/42) |
+| Refund history endpoint for cancelled events (needs #42) | Medium | [#43](https://github.com/inowo-labs/inowo-api/issues/43) |
+| Activity endpoint for a Stellar address (needs #42) | Medium | [#47](https://github.com/inowo-labs/inowo-api/issues/47) |
+| Paginate `GET /api/events` without fetching every event | Medium | [#24](https://github.com/inowo-labs/inowo-api/issues/24) |
+| Cache RPC reads with a short TTL | Medium | [#44](https://github.com/inowo-labs/inowo-api/issues/44) |
+| OpenAPI spec and interactive docs | Medium | [#45](https://github.com/inowo-labs/inowo-api/issues/45) |
+| Filter `GET /api/events` by status | Easy | [#23](https://github.com/inowo-labs/inowo-api/issues/23) |
+| Remove outdated `@types` packages | Easy | [#46](https://github.com/inowo-labs/inowo-api/issues/46) |
 
 See the [Issues](https://github.com/inowo-labs/inowo-api/issues) tab for scoped tasks.
 
