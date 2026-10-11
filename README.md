@@ -44,6 +44,12 @@ npm run typecheck  # type-checks src and tests
 npm run build
 ```
 
+## Caching
+
+Contract reads are cached in memory for `RPC_CACHE_TTL_MS` (default 10 seconds) so repeated requests don't re-run the same RPC simulation. Concurrent identical requests share one in-flight call. "Not found" answers are cached too; RPC failures never are. Set `RPC_CACHE_TTL_MS=0` to disable. `/health` reports hits, misses, and size.
+
+Data can therefore be up to the TTL behind the chain — writes still go straight to the contract, so this only delays when a new sponsorship or payout appears in API responses.
+
 ## Stack
 
 - **Runtime:** Node.js
@@ -55,7 +61,7 @@ npm run build
 
 | Method | Endpoint | Description |
 |--------|----------|-------------|
-| `GET` | `/health` | Server health, uptime, contract info |
+| `GET` | `/health` | Server health, uptime, contract info, RPC cache statistics |
 | `GET` | `/api/events` | List all events (supports `?sort=date` or `?sort=goal`) |
 | `GET` | `/api/events/count` | Total number of events |
 | `GET` | `/api/events/:id` | Single event by ID |
@@ -91,7 +97,6 @@ Errors are always JSON: `{ "error": "<message>" }`, plus `code` when the contrac
 | Refund history endpoint for cancelled events (needs #42) | Medium | [#43](https://github.com/inowo-labs/inowo-api/issues/43) |
 | Activity endpoint for a Stellar address (needs #42) | Medium | [#47](https://github.com/inowo-labs/inowo-api/issues/47) |
 | Paginate `GET /api/events` without fetching every event | Medium | [#24](https://github.com/inowo-labs/inowo-api/issues/24) |
-| Cache RPC reads with a short TTL | Medium | [#44](https://github.com/inowo-labs/inowo-api/issues/44) |
 | OpenAPI spec and interactive docs | Medium | [#45](https://github.com/inowo-labs/inowo-api/issues/45) |
 | Filter `GET /api/events` by status | Easy | [#23](https://github.com/inowo-labs/inowo-api/issues/23) |
 | Remove outdated `@types` packages | Easy | [#46](https://github.com/inowo-labs/inowo-api/issues/46) |

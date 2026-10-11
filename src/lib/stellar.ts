@@ -7,9 +7,11 @@ import {
   xdr,
   rpc as SorobanRpc,
 } from "@stellar/stellar-sdk";
+import { memoizeAsync } from "./cache";
 import config from "./config";
 import {
   ContractError,
+  ContractErrorCode,
   RpcTimeoutError,
   RpcUnavailableError,
   parseContractErrorCode,
@@ -38,7 +40,7 @@ async function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
   }
 }
 
-export async function simulateContractCall(
+async function simulateUncached(
   funcName: string,
   ...args: xdr.ScVal[]
 ): Promise<unknown> {
@@ -69,3 +71,24 @@ export async function simulateContractCall(
 
   return scValToNative(sim.result!.retval);
 }
+
+const NOT_FOUND_CODES = new Set<number>([
+  ContractErrorCode.EventNotFound,
+  ContractErrorCode.TicketNotFound,
+  ContractErrorCode.PayoutNotFound,
+]);
+
+/**
+ * Simulates a read-only contract call. Identical calls within the cache TTL
+ * share one RPC simulation; "not found" answers are cached too, other
+ * failures never are.
+ */
+export const simulateContractCall = memoizeAsync(simulateUncached, {
+  ttlMs: config.rpcCacheTtlMs,
+  max: 2_000,
+  key: (funcName: string, ...args: xdr.ScVal[]) =>
+    [funcName, ...args.map((arg) => arg.toXDR("base64"))].join(":"),
+  cacheError: (err) => err instanceof ContractError && NOT_FOUND_CODES.has(err.code),
+});
+
+export const rpcCacheStats = () => simulateContractCall.stats();
