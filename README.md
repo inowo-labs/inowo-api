@@ -64,7 +64,7 @@ The full machine-readable reference is an [OpenAPI 3.1](https://www.openapis.org
 | Method | Endpoint | Description |
 |--------|----------|-------------|
 | `GET` | `/health` | Server health, uptime, contract info, RPC cache statistics |
-| `GET` | `/api/events` | List all events (supports `?sort=date` or `?sort=goal`) |
+| `GET` | `/api/events` | List events — all of them, or one page with `?limit=` / `?offset=` (see [Pagination](#pagination)); supports `?sort=date` or `?sort=goal` |
 | `GET` | `/api/events/count` | Total number of events |
 | `GET` | `/api/events/:id` | Single event by ID |
 | `GET` | `/api/events/:id/status` | Event status only |
@@ -77,6 +77,23 @@ The full machine-readable reference is an [OpenAPI 3.1](https://www.openapis.org
 | `GET` | `/api/events/:id/tickets/:ticketId` | Single ticket |
 
 All write operations (buy ticket, sponsor, create event) happen directly on-chain through the contract — not through this API.
+
+### Pagination
+
+`GET /api/events` returns a plain array of every event by default. Send `limit`, `offset`, or both to get a page instead:
+
+```
+GET /api/events?limit=5&offset=10
+```
+
+```json
+{ "data": [ /* up to 5 events */ ], "total": 42, "limit": 5, "offset": 10 }
+```
+
+- `limit` is 1–100 (default 20); `offset` is 0 or more (default 0). Anything else returns `400`.
+- Events are ordered by id. A page fetches only its own events from the contract, so a page of 5 costs 5 RPC reads, not one per event on the contract.
+- `?sort=` needs every event to sort, so a sorted page still reads them all and slices afterwards. Indexing contract events into a database is the long-term fix for that.
+- An offset past the end returns an empty `data` array, not an error.
 
 ### Error responses
 
@@ -98,7 +115,6 @@ Errors are always JSON: `{ "error": "<message>" }`, plus `code` when the contrac
 | Index contract events into a database for fast listing and history | Hard | [#42](https://github.com/inowo-labs/inowo-api/issues/42) |
 | Refund history endpoint for cancelled events (needs #42) | Medium | [#43](https://github.com/inowo-labs/inowo-api/issues/43) |
 | Activity endpoint for a Stellar address (needs #42) | Medium | [#47](https://github.com/inowo-labs/inowo-api/issues/47) |
-| Paginate `GET /api/events` without fetching every event | Medium | [#24](https://github.com/inowo-labs/inowo-api/issues/24) |
 | Filter `GET /api/events` by status | Easy | [#23](https://github.com/inowo-labs/inowo-api/issues/23) |
 | Remove outdated `@types` packages | Easy | [#46](https://github.com/inowo-labs/inowo-api/issues/46) |
 

@@ -2,6 +2,7 @@ import { Router, Request, Response } from "express";
 import { xdr } from "@stellar/stellar-sdk";
 import rateLimit from "express-rate-limit";
 import { simulateContractCall } from "../lib/stellar";
+import { idRange, parsePagination } from "../lib/pagination";
 import { serializeBigInt, serializeEvent, serializePayout } from "../lib/serialize";
 import { isU32, validateEventId } from "../middleware/validateEventId";
 
@@ -26,23 +27,42 @@ router.get("/count", async (_req: Request, res: Response) => {
 });
 
 router.get("/", eventsListLimiter, async (req: Request, res: Response) => {
+  const page = parsePagination(req.query);
+  if (!page.ok) {
+    res.status(400).json({ error: page.error });
+    return;
+  }
+
   const count = Number(await simulateContractCall("event_count"));
+  const { sort } = req.query;
+  const sorted = sort === "date" || sort === "goal";
+
+  // Event ids are sequential (0..count), so a plain page can fetch just its own
+  // events. Sorting needs every event, so it fetches all and slices afterwards.
+  const ids =
+    page.paginated && !sorted ? idRange(count, page.offset, page.limit) : idRange(count);
   const events = await Promise.all(
-    Array.from({ length: count }, async (_, id) => ({
+    ids.map(async (id) => ({
       id,
       ...serializeEvent(await simulateContractCall("get_event", xdr.ScVal.scvU32(id))),
     }))
   );
 
-  const { sort } = req.query;
   if (sort === "date") {
     events.sort((a, b) => a.date_unix - b.date_unix);
   } else if (sort === "goal") {
     events.sort((a, b) => Number(b.funding_goal) - Number(a.funding_goal));
   }
 
-  res.json(events);
+  if (!page.paginated) {
+    res.json(events);
+    return;
+  }
+
+  const data = sorted ? events.slice(page.offset, page.offset + page.limit) : events;
+  res.json({ data, total: count, limit: page.limit, offset: page.offset });
 });
+
 
 router.get("/:id", validateEventId, async (req: Request, res: Response) => {
   const event = await simulateContractCall("get_event", u32(req.params.id as string));
