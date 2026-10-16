@@ -3,6 +3,7 @@ import cors from "cors";
 import helmet from "helmet";
 import rateLimit from "express-rate-limit";
 import eventsRouter from "./routes/events";
+import { rpcCacheStats } from "./lib/stellar";
 import { errorHandler } from "./middleware/errorHandler";
 import { requestLogger } from "./middleware/requestLogger";
 
@@ -36,6 +37,7 @@ export function createApp() {
       uptimeSeconds: Math.floor((Date.now() - startedAt) / 1000),
       network: process.env.STELLAR_RPC_URL,
       contractId: process.env.INOWO_CONTRACT_ID,
+      rpcCache: rpcCacheStats(),
     });
   });
 

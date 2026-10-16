@@ -11,6 +11,7 @@ import { createApp } from "../src/app";
 const { simulateContractCall } = vi.hoisted(() => ({ simulateContractCall: vi.fn() }));
 vi.mock("../src/lib/stellar", () => ({
   simulateContractCall: (...args: unknown[]) => simulateContractCall(...args),
+  rpcCacheStats: () => ({ hits: 3, misses: 2, size: 2, ttlMs: 10_000 }),
 }));
 
 // Shape returned by scValToNative for an Event: i128/u64 as bigint, unit enum as ["Active"].
@@ -253,5 +254,14 @@ describe("GET /api/events/:id/balance", () => {
       funding_goal: "200000000",
       total_released: "40000000",
     });
+  });
+});
+
+describe("GET /health", () => {
+  it("reports RPC cache statistics", async () => {
+    const res = await request(app).get("/health");
+
+    expect(res.status).toBe(200);
+    expect(res.body.rpcCache).toEqual({ hits: 3, misses: 2, size: 2, ttlMs: 10_000 });
   });
 });
