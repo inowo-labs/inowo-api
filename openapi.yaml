@@ -84,11 +84,15 @@ paths:
   /api/events:
     get:
       tags: [events]
-      summary: List every event
+      summary: List every event, or one page of them
       description: |
-        Fans out one RPC read per event (plus one for `event_count`), so it is
-        rate-limited more tightly than other endpoints. Sorting is optional;
-        unsorted results are in event-id order.
+        With neither `limit` nor `offset`, returns a bare array of every
+        event, one RPC read per event (plus one for `event_count`) — so this
+        is rate-limited more tightly than other endpoints. Sending either
+        parameter switches to a page: ids are sequential, so an unsorted page
+        reads only its own events. `sort` still needs every event, so a
+        sorted page reads them all and slices afterwards. Unsorted results
+        are in event-id order.
       operationId: listEvents
       parameters:
         - name: sort
@@ -99,14 +103,30 @@ paths:
           description: >-
             `date` sorts soonest first by `date_unix`; `goal` sorts largest
             `funding_goal` first. Omit for event-id order.
+        - name: limit
+          in: query
+          schema: { type: integer, minimum: 1, maximum: 100, default: 20 }
+          description: Sending this or `offset` switches the response to a page.
+        - name: offset
+          in: query
+          schema: { type: integer, minimum: 0, default: 0 }
       responses:
         "200":
-          description: OK
+          description: >-
+            A bare array when neither `limit` nor `offset` was sent, otherwise
+            a page.
           content:
             application/json:
               schema:
-                type: array
-                items: { $ref: "#/components/schemas/Event" }
+                oneOf:
+                  - type: array
+                    items: { $ref: "#/components/schemas/Event" }
+                  - $ref: "#/components/schemas/EventPage"
+        "400":
+          description: limit or offset is out of range or not an integer
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ErrorResponse" }
         "429": { $ref: "#/components/responses/RateLimited" }
         "500": { $ref: "#/components/responses/InternalError" }
         "502": { $ref: "#/components/responses/UpstreamUnavailable" }
@@ -369,6 +389,20 @@ components:
           allOf: [{ $ref: "#/components/schemas/Stroops" }]
           description: Current USDC held in escrow for this event.
         status: { $ref: "#/components/schemas/EventStatus" }
+
+    EventPage:
+      type: object
+      required: [data, total, limit, offset]
+      properties:
+        data:
+          type: array
+          items: { $ref: "#/components/schemas/Event" }
+        total:
+          type: integer
+          minimum: 0
+          description: Total number of events on the contract, not just this page.
+        limit: { type: integer, minimum: 1, maximum: 100 }
+        offset: { type: integer, minimum: 0 }
 
     TicketTier:
       type: object
