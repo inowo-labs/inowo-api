@@ -59,6 +59,8 @@ Data can therefore be up to the TTL behind the chain — writes still go straigh
 
 ## API Reference
 
+The full machine-readable reference is an [OpenAPI 3.1](https://www.openapis.org/) spec at [`openapi.yaml`](./openapi.yaml), served as JSON at `GET /openapi.json` and as interactive docs at `GET /docs` (`npm run dev` or `npm start`, then open `http://localhost:3001/docs`). A test keeps it in sync with the actual routes — the build fails if either drifts from the other.
+
 | Method | Endpoint | Description |
 |--------|----------|-------------|
 | `GET` | `/health` | Server health, uptime, contract info, RPC cache statistics |
@@ -97,7 +99,6 @@ Errors are always JSON: `{ "error": "<message>" }`, plus `code` when the contrac
 | Refund history endpoint for cancelled events (needs #42) | Medium | [#43](https://github.com/inowo-labs/inowo-api/issues/43) |
 | Activity endpoint for a Stellar address (needs #42) | Medium | [#47](https://github.com/inowo-labs/inowo-api/issues/47) |
 | Paginate `GET /api/events` without fetching every event | Medium | [#24](https://github.com/inowo-labs/inowo-api/issues/24) |
-| OpenAPI spec and interactive docs | Medium | [#45](https://github.com/inowo-labs/inowo-api/issues/45) |
 | Filter `GET /api/events` by status | Easy | [#23](https://github.com/inowo-labs/inowo-api/issues/23) |
 | Remove outdated `@types` packages | Easy | [#46](https://github.com/inowo-labs/inowo-api/issues/46) |
 

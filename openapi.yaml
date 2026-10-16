@@ -1,0 +1,457 @@
+openapi: 3.1.0
+info:
+  title: Inowo API
+  version: "1.0.0"
+  description: |
+    Read-only API over the Inowo Soroban contract. Every response is read live
+    from the chain via Soroban RPC simulation — nothing here is cached state
+    that can drift from the contract (see the Caching section of the README
+    for the one exception: short-TTL in-memory caching of identical reads).
+
+    All writes (creating events, sponsoring, buying tickets, releasing funds,
+    refunds) are signed by the user's wallet and sent directly to the
+    contract. This API never holds a key and cannot submit a transaction.
+  license:
+    name: MIT
+    url: https://github.com/inowo-labs/inowo-api/blob/main/LICENSE
+externalDocs:
+  description: inowo-api README
+  url: https://github.com/inowo-labs/inowo-api#readme
+servers:
+  - url: http://localhost:3001
+    description: Local development
+
+tags:
+  - name: health
+  - name: events
+
+paths:
+  /health:
+    get:
+      tags: [health]
+      summary: Server health, uptime, and contract info
+      operationId: getHealth
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [status, version, uptimeSeconds, network, contractId, rpcCache]
+                properties:
+                  status:
+                    type: string
+                    enum: [ok]
+                  version:
+                    type: string
+                  uptimeSeconds:
+                    type: integer
+                    minimum: 0
+                  network:
+                    type: string
+                    description: The configured Soroban RPC URL.
+                  contractId:
+                    type: string
+                  rpcCache:
+                    type: object
+                    required: [hits, misses, size, ttlMs]
+                    properties:
+                      hits: { type: integer, minimum: 0 }
+                      misses: { type: integer, minimum: 0 }
+                      size: { type: integer, minimum: 0 }
+                      ttlMs: { type: integer, minimum: 0 }
+
+  /api/events/count:
+    get:
+      tags: [events]
+      summary: Total number of events ever created
+      operationId: getEventCount
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [count]
+                properties:
+                  count: { type: integer, minimum: 0 }
+        "500": { $ref: "#/components/responses/InternalError" }
+        "502": { $ref: "#/components/responses/UpstreamUnavailable" }
+        "504": { $ref: "#/components/responses/UpstreamTimeout" }
+
+  /api/events:
+    get:
+      tags: [events]
+      summary: List every event
+      description: |
+        Fans out one RPC read per event (plus one for `event_count`), so it is
+        rate-limited more tightly than other endpoints. Sorting is optional;
+        unsorted results are in event-id order.
+      operationId: listEvents
+      parameters:
+        - name: sort
+          in: query
+          schema:
+            type: string
+            enum: [date, goal]
+          description: >-
+            `date` sorts soonest first by `date_unix`; `goal` sorts largest
+            `funding_goal` first. Omit for event-id order.
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/Event" }
+        "429": { $ref: "#/components/responses/RateLimited" }
+        "500": { $ref: "#/components/responses/InternalError" }
+        "502": { $ref: "#/components/responses/UpstreamUnavailable" }
+        "504": { $ref: "#/components/responses/UpstreamTimeout" }
+
+  /api/events/{id}:
+    get:
+      tags: [events]
+      summary: A single event
+      operationId: getEvent
+      parameters:
+        - $ref: "#/components/parameters/EventId"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Event" }
+        "400": { $ref: "#/components/responses/InvalidId" }
+        "404": { $ref: "#/components/responses/EventNotFound" }
+        "500": { $ref: "#/components/responses/InternalError" }
+        "502": { $ref: "#/components/responses/UpstreamUnavailable" }
+        "504": { $ref: "#/components/responses/UpstreamTimeout" }
+
+  /api/events/{id}/status:
+    get:
+      tags: [events]
+      summary: Just an event's status
+      operationId: getEventStatus
+      parameters:
+        - $ref: "#/components/parameters/EventId"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [event_id, status]
+                properties:
+                  event_id: { type: integer, minimum: 0 }
+                  status: { $ref: "#/components/schemas/EventStatus" }
+        "400": { $ref: "#/components/responses/InvalidId" }
+        "404": { $ref: "#/components/responses/EventNotFound" }
+        "500": { $ref: "#/components/responses/InternalError" }
+        "502": { $ref: "#/components/responses/UpstreamUnavailable" }
+        "504": { $ref: "#/components/responses/UpstreamTimeout" }
+
+  /api/events/{id}/organizer:
+    get:
+      tags: [events]
+      summary: An event's organizer address
+      operationId: getEventOrganizer
+      parameters:
+        - $ref: "#/components/parameters/EventId"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [event_id, organizer]
+                properties:
+                  event_id: { type: integer, minimum: 0 }
+                  organizer: { $ref: "#/components/schemas/StellarAddress" }
+        "400": { $ref: "#/components/responses/InvalidId" }
+        "404": { $ref: "#/components/responses/EventNotFound" }
+        "500": { $ref: "#/components/responses/InternalError" }
+        "502": { $ref: "#/components/responses/UpstreamUnavailable" }
+        "504": { $ref: "#/components/responses/UpstreamTimeout" }
+
+  /api/events/{id}/balance:
+    get:
+      tags: [events]
+      summary: Escrow balance, funding goal, and total released
+      operationId: getEventBalance
+      parameters:
+        - $ref: "#/components/parameters/EventId"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [event_id, balance, funding_goal, total_released]
+                properties:
+                  event_id: { type: integer, minimum: 0 }
+                  balance: { $ref: "#/components/schemas/Stroops" }
+                  funding_goal: { $ref: "#/components/schemas/Stroops" }
+                  total_released: { $ref: "#/components/schemas/Stroops" }
+        "400": { $ref: "#/components/responses/InvalidId" }
+        "404": { $ref: "#/components/responses/EventNotFound" }
+        "500": { $ref: "#/components/responses/InternalError" }
+        "502": { $ref: "#/components/responses/UpstreamUnavailable" }
+        "504": { $ref: "#/components/responses/UpstreamTimeout" }
+
+  /api/events/{id}/payouts:
+    get:
+      tags: [events]
+      summary: Every payout released from an event's escrow
+      operationId: listEventPayouts
+      parameters:
+        - $ref: "#/components/parameters/EventId"
+      responses:
+        "200":
+          description: OK. Empty array if nothing has been released yet.
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/Payout" }
+        "400": { $ref: "#/components/responses/InvalidId" }
+        "404": { $ref: "#/components/responses/EventNotFound" }
+        "500": { $ref: "#/components/responses/InternalError" }
+        "502": { $ref: "#/components/responses/UpstreamUnavailable" }
+        "504": { $ref: "#/components/responses/UpstreamTimeout" }
+
+  /api/events/{id}/tiers:
+    get:
+      tags: [events]
+      summary: An event's ticket tiers
+      operationId: listEventTiers
+      parameters:
+        - $ref: "#/components/parameters/EventId"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/TicketTier" }
+        "400": { $ref: "#/components/responses/InvalidId" }
+        "404": { $ref: "#/components/responses/EventNotFound" }
+        "500": { $ref: "#/components/responses/InternalError" }
+        "502": { $ref: "#/components/responses/UpstreamUnavailable" }
+        "504": { $ref: "#/components/responses/UpstreamTimeout" }
+
+  /api/events/{id}/sponsorships:
+    get:
+      tags: [events]
+      summary: Every sponsorship contribution to an event
+      operationId: listEventSponsorships
+      parameters:
+        - $ref: "#/components/parameters/EventId"
+      responses:
+        "200":
+          description: OK. Empty array if the event has no sponsors.
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/Sponsorship" }
+        "400": { $ref: "#/components/responses/InvalidId" }
+        "404": { $ref: "#/components/responses/EventNotFound" }
+        "500": { $ref: "#/components/responses/InternalError" }
+        "502": { $ref: "#/components/responses/UpstreamUnavailable" }
+        "504": { $ref: "#/components/responses/UpstreamTimeout" }
+
+  /api/events/{id}/ticket-count:
+    get:
+      tags: [events]
+      summary: Total tickets sold for an event
+      operationId: getEventTicketCount
+      parameters:
+        - $ref: "#/components/parameters/EventId"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [event_id, ticket_count]
+                properties:
+                  event_id: { type: integer, minimum: 0 }
+                  ticket_count: { type: integer, minimum: 0 }
+        "400": { $ref: "#/components/responses/InvalidId" }
+        "404": { $ref: "#/components/responses/EventNotFound" }
+        "500": { $ref: "#/components/responses/InternalError" }
+        "502": { $ref: "#/components/responses/UpstreamUnavailable" }
+        "504": { $ref: "#/components/responses/UpstreamTimeout" }
+
+  /api/events/{id}/tickets/{ticketId}:
+    get:
+      tags: [events]
+      summary: A single ticket
+      operationId: getEventTicket
+      parameters:
+        - $ref: "#/components/parameters/EventId"
+        - name: ticketId
+          in: path
+          required: true
+          schema: { type: integer, minimum: 0, maximum: 4294967295 }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Ticket" }
+        "400":
+          description: event id or ticket id is not a valid non-negative integer
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ErrorResponse" }
+        "404":
+          description: Event or ticket not found
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ErrorResponse" }
+        "500": { $ref: "#/components/responses/InternalError" }
+        "502": { $ref: "#/components/responses/UpstreamUnavailable" }
+        "504": { $ref: "#/components/responses/UpstreamTimeout" }
+
+components:
+  parameters:
+    EventId:
+      name: id
+      in: path
+      required: true
+      schema: { type: integer, minimum: 0, maximum: 4294967295 }
+      description: Event ID (contract `u32`).
+
+  schemas:
+    StellarAddress:
+      type: string
+      description: A Stellar account or contract address.
+      example: GASCJ5XMP6A5DZYTBX6NFG2RBGIR2GGZRRYUCAUZ5LRV2ENGOKQLLEJA
+
+    Stroops:
+      type: string
+      description: >-
+        A USDC amount in stroops as a decimal string (1 USDC = 10,000,000
+        stroops). Returned as a string because i128 exceeds JavaScript's safe
+        integer range.
+      pattern: "^-?[0-9]+$"
+      example: "120000000"
+
+    EventStatus:
+      type: string
+      enum: [Active, Ended, Cancelled]
+
+    Event:
+      type: object
+      required:
+        [id, organizer, name, description, venue, date_unix, funding_goal, balance, status]
+      properties:
+        id: { type: integer, minimum: 0 }
+        organizer: { $ref: "#/components/schemas/StellarAddress" }
+        name: { type: string }
+        description: { type: string }
+        venue: { type: string }
+        date_unix:
+          type: integer
+          description: Unix timestamp (seconds) of the event date.
+        funding_goal: { $ref: "#/components/schemas/Stroops" }
+        balance:
+          allOf: [{ $ref: "#/components/schemas/Stroops" }]
+          description: Current USDC held in escrow for this event.
+        status: { $ref: "#/components/schemas/EventStatus" }
+
+    TicketTier:
+      type: object
+      required: [name, price, supply_cap, tickets_sold]
+      properties:
+        name: { type: string }
+        price: { $ref: "#/components/schemas/Stroops" }
+        supply_cap: { type: integer, minimum: 0 }
+        tickets_sold: { type: integer, minimum: 0 }
+
+    Ticket:
+      type: object
+      required: [event_id, tier_index, owner, redeemed, price_paid, refunded]
+      properties:
+        event_id: { type: integer, minimum: 0 }
+        tier_index: { type: integer, minimum: 0 }
+        owner: { $ref: "#/components/schemas/StellarAddress" }
+        redeemed: { type: boolean }
+        price_paid: { $ref: "#/components/schemas/Stroops" }
+        refunded: { type: boolean }
+
+    Sponsorship:
+      type: object
+      required: [sponsor, amount]
+      properties:
+        sponsor: { $ref: "#/components/schemas/StellarAddress" }
+        amount: { $ref: "#/components/schemas/Stroops" }
+
+    Payout:
+      type: object
+      required: [id, recipient, amount, memo, timestamp]
+      properties:
+        id: { type: integer, minimum: 0 }
+        recipient: { $ref: "#/components/schemas/StellarAddress" }
+        amount: { $ref: "#/components/schemas/Stroops" }
+        memo:
+          type: string
+          description: What the payout is for (1–200 bytes on-chain).
+        timestamp:
+          type: integer
+          description: Unix timestamp (seconds) of the release.
+
+    ErrorResponse:
+      type: object
+      required: [error]
+      properties:
+        error:
+          type: string
+          description: A human-readable message. Never includes raw RPC diagnostics.
+        code:
+          type: integer
+          description: >-
+            Present when the error came from the contract — one of the error
+            codes in the inowo-Contract README's Errors table.
+
+  responses:
+    InvalidId:
+      description: id is not a valid non-negative integer
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/ErrorResponse" }
+    EventNotFound:
+      description: No event exists with that id (contract error code 3)
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/ErrorResponse" }
+    RateLimited:
+      description: Too many requests
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/ErrorResponse" }
+    InternalError:
+      description: Unexpected server error. Details are logged server-side, never returned.
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/ErrorResponse" }
+    UpstreamUnavailable:
+      description: The Soroban RPC endpoint could not be reached
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/ErrorResponse" }
+    UpstreamTimeout:
+      description: The Soroban RPC call timed out
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/ErrorResponse" }
