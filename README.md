@@ -50,12 +50,30 @@ Contract reads are cached in memory for `RPC_CACHE_TTL_MS` (default 10 seconds) 
 
 Data can therefore be up to the TTL behind the chain — writes still go straight to the contract, so this only delays when a new sponsorship or payout appears in API responses.
 
+## Indexer
+
+A separate worker records every contract event into a local SQLite database, so history that the contract itself can't answer efficiently — "every payout", "everything this address has done" — is a plain SQL query away instead of an unbounded chain scan. It isn't wired into the HTTP API yet; this is the foundation other endpoints (refund history, address activity) build on.
+
+```bash
+npm run indexer        # dev, with auto-restart
+npm run start:indexer  # after npm run build
+```
+
+- One table per contract event (`event_created`, `sponsored`, `ticket_purchased`, `ticket_transferred`, `ticket_redeemed`, `event_ended`, `event_cancelled`, `ticket_refunded`, `sponsorship_refunded`, `funds_released`), each with the event's own fields plus `ledger`, `ledger_closed_at`, and `tx_hash`.
+- **Idempotent.** Every row's primary key is the RPC event's own unique ID, so reprocessing the same ledger range — after a crash, or because the RPC occasionally repeats the event at a page boundary — never creates a duplicate.
+- **Resumable.** The cursor Soroban RPC returns is stored after every page and picked up again on restart, so nothing is reprocessed or skipped across a restart.
+- **Retention-aware.** Soroban RPC only retains recent events (on public testnet, roughly the last week). With no stored cursor and no `INDEXER_START_LEDGER` set, the indexer starts at the current chain tip rather than request ledgers the RPC has already discarded. To backfill further back, set `INDEXER_START_LEDGER` to a ledger still within the RPC's retention window — the indexer logs the RPC's reported floor (`oldestLedger`) if a request falls outside it.
+- Unrecognised event types (a future contract upgrade, or a diagnostic event that slipped past the filter) are skipped and logged, not treated as a crash.
+
+Configuration (`.env.example`): `INDEXER_DB_PATH`, `INDEXER_POLL_INTERVAL_MS`, `INDEXER_START_LEDGER`.
+
 ## Stack
 
 - **Runtime:** Node.js
 - **Framework:** Express
 - **Language:** TypeScript
-- **Chain access:** `@stellar/stellar-sdk` (Soroban RPC simulation)
+- **Chain access:** `@stellar/stellar-sdk` (Soroban RPC simulation and event polling)
+- **Indexer storage:** `better-sqlite3`
 
 ## API Reference
 
@@ -112,9 +130,9 @@ Errors are always JSON: `{ "error": "<message>" }`, plus `code` when the contrac
 
 | Feature | Difficulty | Issue |
 |---------|------------|-------|
-| Index contract events into a database for fast listing and history | Hard | [#42](https://github.com/inowo-labs/inowo-api/issues/42) |
-| Refund history endpoint for cancelled events (needs #42) | Medium | [#43](https://github.com/inowo-labs/inowo-api/issues/43) |
-| Activity endpoint for a Stellar address (needs #42) | Medium | [#47](https://github.com/inowo-labs/inowo-api/issues/47) |
+| Refund history endpoint for cancelled events, built on the indexer | Medium | [#43](https://github.com/inowo-labs/inowo-api/issues/43) |
+| Activity endpoint for a Stellar address, built on the indexer | Medium | [#47](https://github.com/inowo-labs/inowo-api/issues/47) |
+| Update `GET /api/events/:id/sponsorships` for the contract's paginated read | Medium | [#52](https://github.com/inowo-labs/inowo-api/issues/52) |
 | Filter `GET /api/events` by status | Easy | [#23](https://github.com/inowo-labs/inowo-api/issues/23) |
 | Remove outdated `@types` packages | Easy | [#46](https://github.com/inowo-labs/inowo-api/issues/46) |
 
