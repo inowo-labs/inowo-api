@@ -270,19 +270,41 @@ paths:
   /api/events/{id}/sponsorships:
     get:
       tags: [events]
-      summary: Every sponsorship contribution to an event
+      summary: Every sponsorship contribution to an event, or one page of them
+      description: |
+        With neither `limit` nor `offset`, returns a bare array — but only up
+        to `MAX_SPONSORSHIP_PAGE` (50), the contract's own page size. An event
+        with more than 50 sponsorships needs `?limit=&offset=` to see the
+        rest; true for every seeded event today.
       operationId: listEventSponsorships
       parameters:
         - $ref: "#/components/parameters/EventId"
+        - name: limit
+          in: query
+          schema: { type: integer, minimum: 1, maximum: 50, default: 50 }
+          description: Sending this or `offset` switches the response to a page. Capped at 50.
+        - name: offset
+          in: query
+          schema: { type: integer, minimum: 0, default: 0 }
       responses:
         "200":
-          description: OK. Empty array if the event has no sponsors.
+          description: >-
+            A bare array when neither `limit` nor `offset` was sent, otherwise
+            a page. Empty array/page if the event has no sponsors (yet).
           content:
             application/json:
               schema:
-                type: array
-                items: { $ref: "#/components/schemas/Sponsorship" }
-        "400": { $ref: "#/components/responses/InvalidId" }
+                oneOf:
+                  - type: array
+                    items: { $ref: "#/components/schemas/Sponsorship" }
+                  - $ref: "#/components/schemas/SponsorshipPage"
+        "400":
+          description: >-
+            id is not a valid non-negative integer, or limit/offset is out of
+            range or not an integer (limit is capped at 50)
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ErrorResponse" }
         "404": { $ref: "#/components/responses/EventNotFound" }
         "500": { $ref: "#/components/responses/InternalError" }
         "502": { $ref: "#/components/responses/UpstreamUnavailable" }
@@ -430,6 +452,20 @@ components:
       properties:
         sponsor: { $ref: "#/components/schemas/StellarAddress" }
         amount: { $ref: "#/components/schemas/Stroops" }
+
+    SponsorshipPage:
+      type: object
+      required: [data, total, limit, offset]
+      properties:
+        data:
+          type: array
+          items: { $ref: "#/components/schemas/Sponsorship" }
+        total:
+          type: integer
+          minimum: 0
+          description: Total sponsorships for the event, not just this page.
+        limit: { type: integer, minimum: 1, maximum: 50 }
+        offset: { type: integer, minimum: 0 }
 
     Payout:
       type: object
