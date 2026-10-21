@@ -89,7 +89,7 @@ The full machine-readable reference is an [OpenAPI 3.1](https://www.openapis.org
 | `GET` | `/api/events/:id/organizer` | Organizer address |
 | `GET` | `/api/events/:id/balance` | Escrow balance, funding goal, and total released |
 | `GET` | `/api/events/:id/tiers` | All ticket tiers |
-| `GET` | `/api/events/:id/sponsorships` | All sponsorships |
+| `GET` | `/api/events/:id/sponsorships` | Sponsorships — all of them (up to 50), or one page with `?limit=` / `?offset=` |
 | `GET` | `/api/events/:id/payouts` | All payouts released from escrow, with memos |
 | `GET` | `/api/events/:id/ticket-count` | Total tickets sold |
 | `GET` | `/api/events/:id/tickets/:ticketId` | Single ticket |
@@ -111,6 +111,8 @@ GET /api/events?limit=5&offset=10
 - `limit` is 1–100 (default 20); `offset` is 0 or more (default 0). Anything else returns `400`.
 - Events are ordered by id. A page fetches only its own events from the contract, so a page of 5 costs 5 RPC reads, not one per event on the contract.
 - `?sort=` needs every event to sort, so a sorted page still reads them all and slices afterwards. Indexing contract events into a database is the long-term fix for that.
+
+`GET /api/events/:id/sponsorships` works the same way, but its `limit` is capped at **50** to match the contract's own page size (`MAX_SPONSORSHIP_PAGE`) — the contract's `get_sponsorships` never returns more than 50 per call, however large a `limit` the API is asked for. Without `limit`/`offset`, the bare array is therefore only complete for events with 50 sponsorships or fewer (every seeded event today); a busier event needs explicit paging to see the rest.
 - An offset past the end returns an empty `data` array, not an error.
 
 ### Error responses
@@ -132,7 +134,6 @@ Errors are always JSON: `{ "error": "<message>" }`, plus `code` when the contrac
 |---------|------------|-------|
 | Refund history endpoint for cancelled events, built on the indexer | Medium | [#43](https://github.com/inowo-labs/inowo-api/issues/43) |
 | Activity endpoint for a Stellar address, built on the indexer | Medium | [#47](https://github.com/inowo-labs/inowo-api/issues/47) |
-| Update `GET /api/events/:id/sponsorships` for the contract's paginated read | Medium | [#52](https://github.com/inowo-labs/inowo-api/issues/52) |
 | Filter `GET /api/events` by status | Easy | [#23](https://github.com/inowo-labs/inowo-api/issues/23) |
 | Remove outdated `@types` packages | Easy | [#46](https://github.com/inowo-labs/inowo-api/issues/46) |
 

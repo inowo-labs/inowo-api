@@ -19,17 +19,22 @@ function parseNonNegativeInt(value: unknown): number | null {
 
 /**
  * Reads `?limit=` and `?offset=`. Sending either one opts into pagination,
- * with `limit` defaulting to DEFAULT_LIMIT and `offset` to 0.
+ * with `limit` defaulting to `defaultLimit` and `offset` to 0. `maxLimit`
+ * lets a route cap `limit` below `MAX_LIMIT` to match a contract-side page
+ * size (e.g. sponsorships, capped at the contract's `MAX_SPONSORSHIP_PAGE`).
  */
-export function parsePagination(query: Record<string, unknown>): PaginationParams {
+export function parsePagination(
+  query: Record<string, unknown>,
+  { defaultLimit = DEFAULT_LIMIT, maxLimit = MAX_LIMIT }: { defaultLimit?: number; maxLimit?: number } = {}
+): PaginationParams {
   const { limit: rawLimit, offset: rawOffset } = query;
   if (rawLimit === undefined && rawOffset === undefined) {
-    return { ok: true, paginated: false, limit: DEFAULT_LIMIT, offset: 0 };
+    return { ok: true, paginated: false, limit: defaultLimit, offset: 0 };
   }
 
-  const limit = rawLimit === undefined ? DEFAULT_LIMIT : parseNonNegativeInt(rawLimit);
-  if (limit === null || limit < 1 || limit > MAX_LIMIT) {
-    return { ok: false, error: `limit must be an integer between 1 and ${MAX_LIMIT}` };
+  const limit = rawLimit === undefined ? defaultLimit : parseNonNegativeInt(rawLimit);
+  if (limit === null || limit < 1 || limit > maxLimit) {
+    return { ok: false, error: `limit must be an integer between 1 and ${maxLimit}` };
   }
 
   const offset = rawOffset === undefined ? 0 : parseNonNegativeInt(rawOffset);
