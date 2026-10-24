@@ -20,6 +20,11 @@ const eventsListLimiter = rateLimit({
 });
 
 const u32 = (value: string) => xdr.ScVal.scvU32(Number(value));
+const u32Num = (value: number) => xdr.ScVal.scvU32(value);
+
+// Mirrors MAX_SPONSORSHIP_PAGE in inowo-Contract/src/lib.rs — get_sponsorships
+// never returns more than this many per call, however large `limit` is.
+const MAX_SPONSORSHIP_PAGE = 50;
 
 router.get("/count", async (_req: Request, res: Response) => {
   const count = await simulateContractCall("event_count");
@@ -114,11 +119,41 @@ router.get("/:id/tiers", validateEventId, async (req: Request, res: Response) =>
 });
 
 router.get("/:id/sponsorships", validateEventId, async (req: Request, res: Response) => {
+  // The contract's get_sponsorships now requires (start, limit) — it moved
+  // from one growing list to one entry per contribution to stop a flood of
+  // tiny sponsorships from blocking everyone else's (inowo-Contract#36).
+  const page = parsePagination(req.query, {
+    defaultLimit: MAX_SPONSORSHIP_PAGE,
+    maxLimit: MAX_SPONSORSHIP_PAGE,
+  });
+  if (!page.ok) {
+    res.status(400).json({ error: page.error });
+    return;
+  }
+
+  const id = u32(req.params.id as string);
   const sponsorships = await simulateContractCall(
     "get_sponsorships",
-    u32(req.params.id as string)
+    id,
+    u32Num(page.offset),
+    u32Num(page.limit)
   );
-  res.json(serializeBigInt(sponsorships));
+
+  if (!page.paginated) {
+    // Matches today's response shape exactly, but only up to
+    // MAX_SPONSORSHIP_PAGE sponsorships — an event with more than that needs
+    // ?limit=&offset= to see the rest. True for every seeded event today.
+    res.json(serializeBigInt(sponsorships));
+    return;
+  }
+
+  const total = Number(await simulateContractCall("sponsor_count", id));
+  res.json({
+    data: serializeBigInt(sponsorships),
+    total,
+    limit: page.limit,
+    offset: page.offset,
+  });
 });
 
 router.get("/:id/ticket-count", validateEventId, async (req: Request, res: Response) => {

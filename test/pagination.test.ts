@@ -184,6 +184,24 @@ describe("parsePagination", () => {
   it("rejects numbers too large to represent exactly", () => {
     expect(parsePagination({ offset: "99999999999999999999" })).toMatchObject({ ok: false });
   });
+
+  it("honours a custom defaultLimit and maxLimit", () => {
+    expect(parsePagination({}, { defaultLimit: 50, maxLimit: 50 })).toMatchObject({
+      paginated: false,
+      limit: 50,
+    });
+    expect(parsePagination({ offset: "10" }, { defaultLimit: 50, maxLimit: 50 })).toEqual({
+      ok: true,
+      paginated: true,
+      limit: 50,
+      offset: 10,
+    });
+    expect(parsePagination({ limit: "51" }, { maxLimit: 50 })).toMatchObject({
+      ok: false,
+      error: expect.stringContaining("between 1 and 50"),
+    });
+    expect(parsePagination({ limit: "50" }, { maxLimit: 50 })).toMatchObject({ ok: true, limit: 50 });
+  });
 });
 
 describe("idRange", () => {
