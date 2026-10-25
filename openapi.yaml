@@ -246,6 +246,30 @@ paths:
         "502": { $ref: "#/components/responses/UpstreamUnavailable" }
         "504": { $ref: "#/components/responses/UpstreamTimeout" }
 
+  /api/events/{id}/refunds:
+    get:
+      tags: [events]
+      summary: Every refund paid out for a cancelled event
+      description: |
+        Refunds aren't stored as a list on-chain — they only exist as
+        `ticket_refunded` and `sponsorship_refunded` contract events — so this
+        reads from the indexer's database rather than simulating a contract
+        call. Needs the indexer (`npm run indexer`) to be running and caught up.
+      operationId: listEventRefunds
+      parameters:
+        - $ref: "#/components/parameters/EventId"
+      responses:
+        "200":
+          description: OK. Empty data/zero total if nothing has been refunded (yet).
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/RefundHistory" }
+        "400": { $ref: "#/components/responses/InvalidId" }
+        "404": { $ref: "#/components/responses/EventNotFound" }
+        "500": { $ref: "#/components/responses/InternalError" }
+        "502": { $ref: "#/components/responses/UpstreamUnavailable" }
+        "504": { $ref: "#/components/responses/UpstreamTimeout" }
+
   /api/events/{id}/tiers:
     get:
       tags: [events]
@@ -480,6 +504,38 @@ components:
         timestamp:
           type: integer
           description: Unix timestamp (seconds) of the release.
+
+    Refund:
+      type: object
+      required: [type, address, amount, ledger, timestamp, tx_hash]
+      properties:
+        type:
+          type: string
+          enum: [ticket, sponsorship]
+        address: { $ref: "#/components/schemas/StellarAddress" }
+        amount: { $ref: "#/components/schemas/Stroops" }
+        ticket_id:
+          type: integer
+          minimum: 0
+          description: Present only when `type` is `ticket`.
+        ledger:
+          type: integer
+          description: Ledger sequence the refund's transaction closed in.
+        timestamp:
+          type: string
+          format: date-time
+          description: When that ledger closed.
+        tx_hash:
+          type: string
+
+    RefundHistory:
+      type: object
+      required: [data, total_refunded]
+      properties:
+        data:
+          type: array
+          items: { $ref: "#/components/schemas/Refund" }
+        total_refunded: { $ref: "#/components/schemas/Stroops" }
 
     ErrorResponse:
       type: object

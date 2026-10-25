@@ -7,6 +7,16 @@ import { decodeEvent, type DecodedEvent } from "./decode";
 
 export type IndexerDb = ReturnType<typeof openIndexerDb>;
 
+export interface RefundRow {
+  type: "ticket" | "sponsorship";
+  address: string;
+  amount: string;
+  ticketId: number | null;
+  ledger: number;
+  ledgerClosedAt: string;
+  txHash: string;
+}
+
 export function openIndexerDb(path: string) {
   if (path !== ":memory:") mkdirSync(dirname(path), { recursive: true });
   const db = new Database(path);
@@ -34,6 +44,19 @@ export function openIndexerDb(path: string) {
     `INSERT INTO cursor (id, cursor, last_ledger, updated_at) VALUES (1, @cursor, @last_ledger, @updated_at)
      ON CONFLICT(id) DO UPDATE SET cursor = @cursor, last_ledger = @last_ledger, updated_at = @updated_at`
   );
+
+  // Refunds aren't stored as their own list on-chain; this is the union of
+  // the two events a cancelled event's refunds are published as, newest first.
+  const listRefundsStmt = db.prepare(`
+    SELECT 'ticket' AS type, owner AS address, ticket_id AS ticketId, amount,
+           ledger, ledger_closed_at AS ledgerClosedAt, tx_hash AS txHash, id
+      FROM ticket_refunded WHERE event_id = @event_id
+    UNION ALL
+    SELECT 'sponsorship' AS type, sponsor AS address, NULL AS ticketId, amount,
+           ledger, ledger_closed_at AS ledgerClosedAt, tx_hash AS txHash, id
+      FROM sponsorship_refunded WHERE event_id = @event_id
+    ORDER BY ledger DESC, id DESC
+  `);
 
   return {
     raw: db,
@@ -80,6 +103,10 @@ export function openIndexerDb(path: string) {
       apply();
 
       return { inserted, unknown };
+    },
+
+    listRefunds(eventId: number): RefundRow[] {
+      return listRefundsStmt.all({ event_id: eventId }) as RefundRow[];
     },
 
     close() {

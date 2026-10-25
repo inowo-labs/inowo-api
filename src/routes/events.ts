@@ -2,6 +2,7 @@ import { Router, Request, Response } from "express";
 import { xdr } from "@stellar/stellar-sdk";
 import rateLimit from "express-rate-limit";
 import { simulateContractCall } from "../lib/stellar";
+import { getIndexerDb } from "../lib/indexerDb";
 import { idRange, parsePagination } from "../lib/pagination";
 import { serializeBigInt, serializeEvent, serializePayout } from "../lib/serialize";
 import { isU32, validateEventId } from "../middleware/validateEventId";
@@ -111,6 +112,30 @@ router.get("/:id/payouts", validateEventId, async (req: Request, res: Response) 
     )
   );
   res.json(payouts);
+});
+
+router.get("/:id/refunds", validateEventId, async (req: Request, res: Response) => {
+  const id = u32(req.params.id as string);
+  // Refunds aren't on-chain queries — they only exist as indexed events — so
+  // the existence check that would normally come from the contract call has
+  // to be done explicitly here.
+  await simulateContractCall("get_event", id);
+
+  const rows = getIndexerDb().listRefunds(Number(req.params.id));
+  const totalRefunded = rows.reduce((sum, row) => sum + BigInt(row.amount), 0n);
+
+  res.json({
+    data: rows.map((row) => ({
+      type: row.type,
+      address: row.address,
+      amount: row.amount,
+      ...(row.type === "ticket" ? { ticket_id: row.ticketId } : {}),
+      ledger: row.ledger,
+      timestamp: row.ledgerClosedAt,
+      tx_hash: row.txHash,
+    })),
+    total_refunded: totalRefunded.toString(),
+  });
 });
 
 router.get("/:id/tiers", validateEventId, async (req: Request, res: Response) => {
