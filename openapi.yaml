@@ -24,6 +24,7 @@ servers:
 tags:
   - name: health
   - name: events
+  - name: addresses
 
 paths:
   /health:
@@ -389,6 +390,40 @@ paths:
         "502": { $ref: "#/components/responses/UpstreamUnavailable" }
         "504": { $ref: "#/components/responses/UpstreamTimeout" }
 
+  /api/addresses/{address}/activity:
+    get:
+      tags: [addresses]
+      summary: Everything an address has done with Inowo
+      description: |
+        Events organized, sponsorships made, tickets bought, payouts
+        received, and refunds claimed — read from the indexer, not the
+        chain directly, the same as `/api/events/{id}/refunds`.
+        `limit`/`offset` apply independently to each of the five sections.
+      operationId: getAddressActivity
+      parameters:
+        - name: address
+          in: path
+          required: true
+          schema: { $ref: "#/components/schemas/StellarAddress" }
+        - name: limit
+          in: query
+          schema: { type: integer, minimum: 1, maximum: 100, default: 20 }
+        - name: offset
+          in: query
+          schema: { type: integer, minimum: 0, default: 0 }
+      responses:
+        "200":
+          description: OK. Empty arrays for any section with no activity.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Activity" }
+        "400":
+          description: address is not a valid Stellar public key, or limit/offset is out of range
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ErrorResponse" }
+        "500": { $ref: "#/components/responses/InternalError" }
+
 components:
   parameters:
     EventId:
@@ -536,6 +571,48 @@ components:
           type: array
           items: { $ref: "#/components/schemas/Refund" }
         total_refunded: { $ref: "#/components/schemas/Stroops" }
+
+    ActivityItem:
+      type: object
+      required: [event_id, tx_hash]
+      properties:
+        event_id: { type: integer, minimum: 0 }
+        amount:
+          allOf: [{ $ref: "#/components/schemas/Stroops" }]
+          description: Present for sections where an amount applies (not `organized`).
+        ticket_id:
+          type: integer
+          minimum: 0
+          description: Present only in `tickets`.
+        tx_hash: { type: string }
+
+    RefundActivityItem:
+      allOf:
+        - { $ref: "#/components/schemas/ActivityItem" }
+        - type: object
+          required: [type]
+          properties:
+            type: { type: string, enum: [ticket, sponsorship] }
+
+    Activity:
+      type: object
+      required: [organized, sponsorships, tickets, payouts_received, refunds]
+      properties:
+        organized:
+          type: array
+          items: { $ref: "#/components/schemas/ActivityItem" }
+        sponsorships:
+          type: array
+          items: { $ref: "#/components/schemas/ActivityItem" }
+        tickets:
+          type: array
+          items: { $ref: "#/components/schemas/ActivityItem" }
+        payouts_received:
+          type: array
+          items: { $ref: "#/components/schemas/ActivityItem" }
+        refunds:
+          type: array
+          items: { $ref: "#/components/schemas/RefundActivityItem" }
 
     ErrorResponse:
       type: object

@@ -52,7 +52,7 @@ Data can therefore be up to the TTL behind the chain — writes still go straigh
 
 ## Indexer
 
-A separate worker records every contract event into a local SQLite database, so history that the contract itself can't answer efficiently — "every payout", "everything this address has done" — is a plain SQL query away instead of an unbounded chain scan. `GET /api/events/:id/refunds` is the first endpoint to read from it; others (address activity) build on the same foundation.
+A separate worker records every contract event into a local SQLite database, so history that the contract itself can't answer efficiently — "every payout", "everything this address has done" — is a plain SQL query away instead of an unbounded chain scan. `GET /api/events/:id/refunds` and `GET /api/addresses/:address/activity` both read from it instead of the chain.
 
 ```bash
 npm run indexer        # dev, with auto-restart
@@ -94,6 +94,7 @@ The full machine-readable reference is an [OpenAPI 3.1](https://www.openapis.org
 | `GET` | `/api/events/:id/refunds` | All ticket and sponsorship refunds for a cancelled event, newest first, with `total_refunded` — read from the [indexer](#indexer), not the chain directly |
 | `GET` | `/api/events/:id/ticket-count` | Total tickets sold |
 | `GET` | `/api/events/:id/tickets/:ticketId` | Single ticket |
+| `GET` | `/api/addresses/:address/activity` | Everything an address has done — events organized, sponsorships, tickets, payouts received, refunds — each paginated independently with `?limit=`/`?offset=`; read from the [indexer](#indexer), not the chain directly |
 
 All write operations (buy ticket, sponsor, create event) happen directly on-chain through the contract — not through this API.
 
