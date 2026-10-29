@@ -33,7 +33,10 @@ function liveRoutes(): string[] {
   const eventRoutes = extractRoutes(readFileSync(join(ROOT, "src/routes/events.ts"), "utf8")).map(
     (p) => (p === "/" ? "/api/events" : `/api/events${p}`)
   );
-  return [...appRoutes, ...eventRoutes].map(toOpenApiPath);
+  const addressRoutes = extractRoutes(readFileSync(join(ROOT, "src/routes/addresses.ts"), "utf8")).map(
+    (p) => (p === "/" ? "/api/addresses" : `/api/addresses${p}`)
+  );
+  return [...appRoutes, ...eventRoutes, ...addressRoutes].map(toOpenApiPath);
 }
 
 function specRoutes(spec: { paths: Record<string, Record<string, unknown>> }): string[] {

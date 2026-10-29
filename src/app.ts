@@ -4,6 +4,7 @@ import helmet from "helmet";
 import rateLimit from "express-rate-limit";
 import { absolutePath as swaggerUiAssetsPath } from "swagger-ui-dist";
 import eventsRouter from "./routes/events";
+import addressesRouter from "./routes/addresses";
 import { rpcCacheStats } from "./lib/stellar";
 import { loadOpenApiSpec } from "./lib/openapi";
 import { errorHandler } from "./middleware/errorHandler";
@@ -85,6 +86,7 @@ export function createApp() {
   app.use("/docs", express.static(swaggerUiAssetsPath(), { index: false }));
 
   app.use("/api/events", eventsRouter);
+  app.use("/api/addresses", addressesRouter);
   app.use((_req, res) => {
     res.status(404).json({ error: "not found" });
   });
