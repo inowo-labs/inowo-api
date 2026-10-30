@@ -528,7 +528,7 @@ components:
 
     Payout:
       type: object
-      required: [id, recipient, amount, memo, timestamp]
+      required: [id, recipient, amount, memo, timestamp, receipt_hash, receipt_uri]
       properties:
         id: { type: integer, minimum: 0 }
         recipient: { $ref: "#/components/schemas/StellarAddress" }
@@ -539,6 +539,13 @@ components:
         timestamp:
           type: integer
           description: Unix timestamp (seconds) of the release.
+        receipt_hash:
+          type: [string, "null"]
+          description: Hex-encoded SHA-256 of a receipt document, set once via `attach_receipt`; null until then.
+          example: "a1b2c3d4e5f60718293a4b5c6d7e8f901234567890abcdef1234567890abcdef"
+        receipt_uri:
+          type: [string, "null"]
+          description: Where to find the receipt document, e.g. an IPFS CID; null until set.
 
     Refund:
       type: object
