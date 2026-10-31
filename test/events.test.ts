@@ -199,8 +199,22 @@ describe("request logger", () => {
 describe("GET /api/events/:id/payouts", () => {
   it("lists payouts with ids, string amounts, and numeric timestamps", async () => {
     const payouts = [
-      { recipient: "GVENUE", amount: 25_000_000n, memo: "Venue hire", timestamp: 1_790_500_000n },
-      { recipient: "GCREW", amount: 15_000_000n, memo: "AV crew", timestamp: 1_790_500_100n },
+      {
+        recipient: "GVENUE",
+        amount: 25_000_000n,
+        memo: "Venue hire",
+        timestamp: 1_790_500_000n,
+        receipt_hash: null,
+        receipt_uri: null,
+      },
+      {
+        recipient: "GCREW",
+        amount: 15_000_000n,
+        memo: "AV crew",
+        timestamp: 1_790_500_100n,
+        receipt_hash: null,
+        receipt_uri: null,
+      },
     ];
     mockCalls({
       payout_count: () => 2,
@@ -211,9 +225,44 @@ describe("GET /api/events/:id/payouts", () => {
 
     expect(res.status).toBe(200);
     expect(res.body).toEqual([
-      { id: 0, recipient: "GVENUE", amount: "25000000", memo: "Venue hire", timestamp: 1_790_500_000 },
-      { id: 1, recipient: "GCREW", amount: "15000000", memo: "AV crew", timestamp: 1_790_500_100 },
+      {
+        id: 0,
+        recipient: "GVENUE",
+        amount: "25000000",
+        memo: "Venue hire",
+        timestamp: 1_790_500_000,
+        receipt_hash: null,
+        receipt_uri: null,
+      },
+      {
+        id: 1,
+        recipient: "GCREW",
+        amount: "15000000",
+        memo: "AV crew",
+        timestamp: 1_790_500_100,
+        receipt_hash: null,
+        receipt_uri: null,
+      },
     ]);
+  });
+
+  it("hex-encodes an attached receipt hash and passes through its URI", async () => {
+    mockCalls({
+      payout_count: () => 1,
+      get_payout: () => ({
+        recipient: "GVENUE",
+        amount: 25_000_000n,
+        memo: "Venue hire",
+        timestamp: 1_790_500_000n,
+        receipt_hash: new Uint8Array(32).fill(0xab),
+        receipt_uri: "ipfs://bafy-receipt",
+      }),
+    });
+
+    const res = await request(app).get("/api/events/1/payouts");
+
+    expect(res.body[0].receipt_hash).toBe("ab".repeat(32));
+    expect(res.body[0].receipt_uri).toBe("ipfs://bafy-receipt");
   });
 
   it("returns an empty list when nothing has been released", async () => {

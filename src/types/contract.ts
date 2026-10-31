@@ -42,4 +42,8 @@ export interface Payout {
   memo: string;
   /** Unix timestamp (seconds) of the release. */
   timestamp: number;
+  /** Hex-encoded SHA-256 of a receipt document; null until attach_receipt is called. */
+  receipt_hash: string | null;
+  /** Where to find the receipt document, e.g. an IPFS CID; null if never set. */
+  receipt_uri: string | null;
 }
