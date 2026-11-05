@@ -10,6 +10,12 @@ export interface Event {
   venue: string;
   date_unix: number;
   funding_goal: string;
+  /**
+   * Unix seconds; past this, anyone can call expire_event if the goal is
+   * unmet. Null for an event created before this field existed on the
+   * deployed contract.
+   */
+  funding_deadline: number | null;
   balance: string;
   status: EventStatus;
 }

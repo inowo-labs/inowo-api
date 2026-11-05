@@ -43,6 +43,8 @@ export function serializeEvent(raw: unknown): Event {
   return {
     ...event,
     date_unix: Number(event.date_unix),
+    funding_deadline:
+      event.funding_deadline == null ? null : Number(event.funding_deadline),
     status: toEventStatus(event.status),
   } as Event;
 }

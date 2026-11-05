@@ -22,6 +22,12 @@ export const ContractErrorCode = {
   InsufficientFunds: 20,
   InvalidMemo: 21,
   PayoutNotFound: 22,
+  TransferToSelf: 23,
+  ReceiptAlreadyAttached: 24,
+  InvalidReceiptUri: 25,
+  InvalidFundingDeadline: 26,
+  FundingDeadlineNotPassed: 27,
+  FundingGoalReached: 28,
 } as const;
 
 const NAMES = Object.fromEntries(

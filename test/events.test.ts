@@ -23,6 +23,7 @@ function rawEvent(overrides: Record<string, unknown> = {}) {
     venue: "Lagos",
     date_unix: 1_760_000_000n,
     funding_goal: 500_000_000n,
+    funding_deadline: 1_755_000_000n,
     balance: 120_000_000n,
     status: ["Active"],
     ...overrides,
@@ -68,6 +69,7 @@ describe("GET /api/events/:id", () => {
       name: "Stellar Meetup",
       date_unix: 1_760_000_000,
       funding_goal: "500000000",
+      funding_deadline: 1_755_000_000,
       balance: "120000000",
       status: "Active",
     });

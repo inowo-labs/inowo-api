@@ -455,7 +455,18 @@ components:
     Event:
       type: object
       required:
-        [id, organizer, name, description, venue, date_unix, funding_goal, balance, status]
+        [
+          id,
+          organizer,
+          name,
+          description,
+          venue,
+          date_unix,
+          funding_goal,
+          funding_deadline,
+          balance,
+          status,
+        ]
       properties:
         id: { type: integer, minimum: 0 }
         organizer: { $ref: "#/components/schemas/StellarAddress" }
@@ -466,6 +477,12 @@ components:
           type: integer
           description: Unix timestamp (seconds) of the event date.
         funding_goal: { $ref: "#/components/schemas/Stroops" }
+        funding_deadline:
+          type: [integer, "null"]
+          description: >-
+            Unix timestamp (seconds). Past this, anyone can call the
+            contract's expire_event if the goal is unmet. Null for an event
+            created before this field existed on the deployed contract.
         balance:
           allOf: [{ $ref: "#/components/schemas/Stroops" }]
           description: Current USDC held in escrow for this event.
