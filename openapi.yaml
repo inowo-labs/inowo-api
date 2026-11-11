@@ -247,6 +247,31 @@ paths:
         "502": { $ref: "#/components/responses/UpstreamUnavailable" }
         "504": { $ref: "#/components/responses/UpstreamTimeout" }
 
+  /api/events/{id}/budget-lines:
+    get:
+      tags: [events]
+      summary: An event's published budget
+      description: |
+        Planned disbursements — recipient, amount, purpose, and how much has
+        been released so far against each. Every event needs at least one
+        line before `release_funds` can pay anything at all.
+      operationId: listEventBudgetLines
+      parameters:
+        - $ref: "#/components/parameters/EventId"
+      responses:
+        "200":
+          description: OK. Empty array for an event with no budget published yet.
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/BudgetLine" }
+        "400": { $ref: "#/components/responses/InvalidId" }
+        "404": { $ref: "#/components/responses/EventNotFound" }
+        "500": { $ref: "#/components/responses/InternalError" }
+        "502": { $ref: "#/components/responses/UpstreamUnavailable" }
+        "504": { $ref: "#/components/responses/UpstreamTimeout" }
+
   /api/events/{id}/refunds:
     get:
       tags: [events]
@@ -542,6 +567,20 @@ components:
           description: Total sponsorships for the event, not just this page.
         limit: { type: integer, minimum: 1, maximum: 50 }
         offset: { type: integer, minimum: 0 }
+
+    BudgetLine:
+      type: object
+      required: [id, recipient, amount, purpose, released]
+      properties:
+        id: { type: integer, minimum: 0 }
+        recipient: { $ref: "#/components/schemas/StellarAddress" }
+        amount: { $ref: "#/components/schemas/Stroops" }
+        purpose:
+          type: string
+          description: What this line pays for (1–200 bytes on-chain).
+        released:
+          allOf: [{ $ref: "#/components/schemas/Stroops" }]
+          description: Total released against this line so far; never exceeds amount.
 
     Payout:
       type: object

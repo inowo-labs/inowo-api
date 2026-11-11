@@ -41,6 +41,15 @@ export interface Sponsorship {
   amount: string;
 }
 
+export interface BudgetLine {
+  id: number;
+  recipient: string;
+  amount: string;
+  purpose: string;
+  /** Total released against this line so far. */
+  released: string;
+}
+
 export interface Payout {
   id: number;
   recipient: string;

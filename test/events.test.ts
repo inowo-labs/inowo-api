@@ -289,6 +289,48 @@ describe("GET /api/events/:id/payouts", () => {
   });
 });
 
+describe("GET /api/events/:id/budget-lines", () => {
+  it("lists budget lines with ids, string amounts, and purposes", async () => {
+    const lines = [
+      { recipient: "GVENUE", amount: 400_000_000n, purpose: "Venue hire", released: 400_000_000n },
+      { recipient: "GCATERER", amount: 210_000_000n, purpose: "Catering", released: 0n },
+    ];
+    mockCalls({
+      budget_line_count: () => 2,
+      get_budget_line: () => lines.shift(),
+    });
+
+    const res = await request(app).get("/api/events/1/budget-lines");
+
+    expect(res.status).toBe(200);
+    expect(res.body).toEqual([
+      { id: 0, recipient: "GVENUE", amount: "400000000", purpose: "Venue hire", released: "400000000" },
+      { id: 1, recipient: "GCATERER", amount: "210000000", purpose: "Catering", released: "0" },
+    ]);
+  });
+
+  it("returns an empty list when no budget has been published", async () => {
+    mockCalls({ budget_line_count: () => 0 });
+
+    const res = await request(app).get("/api/events/0/budget-lines");
+
+    expect(res.status).toBe(200);
+    expect(res.body).toEqual([]);
+  });
+
+  it("returns 404 for a missing event", async () => {
+    mockCalls({
+      budget_line_count: () => {
+        throw new ContractError(ContractErrorCode.EventNotFound);
+      },
+    });
+
+    const res = await request(app).get("/api/events/99/budget-lines");
+
+    expect(res.status).toBe(404);
+  });
+});
+
 describe("GET /api/events/:id/balance", () => {
   it("includes the total released from escrow", async () => {
     mockCalls({
