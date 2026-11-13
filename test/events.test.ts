@@ -204,6 +204,7 @@ describe("GET /api/events/:id/payouts", () => {
       {
         recipient: "GVENUE",
         amount: 25_000_000n,
+        line_id: 0,
         memo: "Venue hire",
         timestamp: 1_790_500_000n,
         receipt_hash: null,
@@ -212,6 +213,7 @@ describe("GET /api/events/:id/payouts", () => {
       {
         recipient: "GCREW",
         amount: 15_000_000n,
+        line_id: 1,
         memo: "AV crew",
         timestamp: 1_790_500_100n,
         receipt_hash: null,
@@ -231,6 +233,7 @@ describe("GET /api/events/:id/payouts", () => {
         id: 0,
         recipient: "GVENUE",
         amount: "25000000",
+        line_id: 0,
         memo: "Venue hire",
         timestamp: 1_790_500_000,
         receipt_hash: null,
@@ -240,6 +243,7 @@ describe("GET /api/events/:id/payouts", () => {
         id: 1,
         recipient: "GCREW",
         amount: "15000000",
+        line_id: 1,
         memo: "AV crew",
         timestamp: 1_790_500_100,
         receipt_hash: null,
@@ -254,6 +258,7 @@ describe("GET /api/events/:id/payouts", () => {
       get_payout: () => ({
         recipient: "GVENUE",
         amount: 25_000_000n,
+        line_id: 0,
         memo: "Venue hire",
         timestamp: 1_790_500_000n,
         receipt_hash: new Uint8Array(32).fill(0xab),

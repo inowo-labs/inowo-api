@@ -584,11 +584,15 @@ components:
 
     Payout:
       type: object
-      required: [id, recipient, amount, memo, timestamp, receipt_hash, receipt_uri]
+      required: [id, recipient, amount, line_id, memo, timestamp, receipt_hash, receipt_uri]
       properties:
         id: { type: integer, minimum: 0 }
         recipient: { $ref: "#/components/schemas/StellarAddress" }
         amount: { $ref: "#/components/schemas/Stroops" }
+        line_id:
+          type: integer
+          minimum: 0
+          description: The budget line this payout was released against.
         memo:
           type: string
           description: What the payout is for (1–200 bytes on-chain).

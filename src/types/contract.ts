@@ -54,6 +54,8 @@ export interface Payout {
   id: number;
   recipient: string;
   amount: string;
+  /** The budget line this was released against. */
+  line_id: number;
   memo: string;
   /** Unix timestamp (seconds) of the release. */
   timestamp: number;

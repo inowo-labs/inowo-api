@@ -90,7 +90,7 @@ The full machine-readable reference is an [OpenAPI 3.1](https://www.openapis.org
 | `GET` | `/api/events/:id/balance` | Escrow balance, funding goal, and total released |
 | `GET` | `/api/events/:id/tiers` | All ticket tiers |
 | `GET` | `/api/events/:id/sponsorships` | Sponsorships — all of them (up to 50), or one page with `?limit=` / `?offset=` |
-| `GET` | `/api/events/:id/payouts` | All payouts released from escrow, with memos and the receipt hash/URI once one is attached (both `null` until then) |
+| `GET` | `/api/events/:id/payouts` | All payouts released from escrow, with the budget line each was released against, memos, and the receipt hash/URI once one is attached (both `null` until then) |
 | `GET` | `/api/events/:id/budget-lines` | An event's published budget: recipient, amount, purpose, and how much has been released against each line |
 | `GET` | `/api/events/:id/refunds` | All ticket and sponsorship refunds for a cancelled event, newest first, with `total_refunded` — read from the [indexer](#indexer), not the chain directly |
 | `GET` | `/api/events/:id/ticket-count` | Total tickets sold |

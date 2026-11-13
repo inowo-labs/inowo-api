@@ -29,6 +29,7 @@ export function serializePayout(id: number, raw: unknown): Payout {
     id,
     recipient: String(payout.recipient),
     amount: String(payout.amount),
+    line_id: Number(payout.line_id),
     memo: String(payout.memo),
     timestamp: Number(payout.timestamp),
     receipt_hash: payout.receipt_hash
