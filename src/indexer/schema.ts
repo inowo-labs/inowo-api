@@ -126,6 +126,7 @@ CREATE TABLE IF NOT EXISTS funds_released (
   event_id INTEGER NOT NULL,
   recipient TEXT NOT NULL,
   payout_id INTEGER NOT NULL,
+  line_id INTEGER NOT NULL,
   amount TEXT NOT NULL,
   memo TEXT NOT NULL
 );

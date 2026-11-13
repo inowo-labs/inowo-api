@@ -1,4 +1,4 @@
-import type { Event, EventStatus, Payout } from "../types/contract";
+import type { BudgetLine, Event, EventStatus, Payout } from "../types/contract";
 
 /** Converts bigint values (i128/u64 from the contract) to strings so they survive JSON. */
 export function serializeBigInt(value: unknown): unknown {
@@ -29,12 +29,24 @@ export function serializePayout(id: number, raw: unknown): Payout {
     id,
     recipient: String(payout.recipient),
     amount: String(payout.amount),
+    line_id: Number(payout.line_id),
     memo: String(payout.memo),
     timestamp: Number(payout.timestamp),
     receipt_hash: payout.receipt_hash
       ? Buffer.from(payout.receipt_hash as Uint8Array).toString("hex")
       : null,
     receipt_uri: payout.receipt_uri ? String(payout.receipt_uri) : null,
+  };
+}
+
+export function serializeBudgetLine(id: number, raw: unknown): BudgetLine {
+  const line = serializeBigInt(raw) as Record<string, unknown>;
+  return {
+    id,
+    recipient: String(line.recipient),
+    amount: String(line.amount),
+    purpose: String(line.purpose),
+    released: String(line.released),
   };
 }
 
