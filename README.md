@@ -59,7 +59,7 @@ npm run indexer        # dev, with auto-restart
 npm run start:indexer  # after npm run build
 ```
 
-- One table per contract event (`event_created`, `sponsored`, `ticket_purchased`, `ticket_transferred`, `ticket_redeemed`, `event_ended`, `event_cancelled`, `ticket_refunded`, `sponsorship_refunded`, `funds_released`), each with the event's own fields plus `ledger`, `ledger_closed_at`, and `tx_hash`.
+- One table per contract event (`event_created`, `sponsored`, `ticket_purchased`, `ticket_transferred`, `ticket_redeemed`, `event_ended`, `event_cancelled`, `event_expired`, `ticket_refunded`, `sponsorship_refunded`, `funds_released`, `budget_line_added`, `receipt_attached`), each with the event's own fields plus `ledger`, `ledger_closed_at`, and `tx_hash`.
 - **Idempotent.** Every row's primary key is the RPC event's own unique ID, so reprocessing the same ledger range — after a crash, or because the RPC occasionally repeats the event at a page boundary — never creates a duplicate.
 - **Resumable.** The cursor Soroban RPC returns is stored after every page and picked up again on restart, so nothing is reprocessed or skipped across a restart.
 - **Retention-aware.** Soroban RPC only retains recent events (on public testnet, roughly the last week). With no stored cursor and no `INDEXER_START_LEDGER` set, the indexer starts at the current chain tip rather than request ledgers the RPC has already discarded. To backfill further back, set `INDEXER_START_LEDGER` to a ledger still within the RPC's retention window — the indexer logs the RPC's reported floor (`oldestLedger`) if a request falls outside it.

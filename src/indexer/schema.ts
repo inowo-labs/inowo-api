@@ -132,4 +132,38 @@ CREATE TABLE IF NOT EXISTS funds_released (
 );
 CREATE INDEX IF NOT EXISTS funds_released_event_id ON funds_released(event_id);
 CREATE INDEX IF NOT EXISTS funds_released_recipient ON funds_released(recipient);
+
+CREATE TABLE IF NOT EXISTS event_expired (
+  id TEXT PRIMARY KEY,
+  ledger INTEGER NOT NULL,
+  ledger_closed_at TEXT NOT NULL,
+  tx_hash TEXT NOT NULL,
+  event_id INTEGER NOT NULL,
+  balance TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS event_expired_event_id ON event_expired(event_id);
+
+CREATE TABLE IF NOT EXISTS budget_line_added (
+  id TEXT PRIMARY KEY,
+  ledger INTEGER NOT NULL,
+  ledger_closed_at TEXT NOT NULL,
+  tx_hash TEXT NOT NULL,
+  event_id INTEGER NOT NULL,
+  line_id INTEGER NOT NULL,
+  recipient TEXT NOT NULL,
+  amount TEXT NOT NULL,
+  purpose TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS budget_line_added_event_id ON budget_line_added(event_id);
+
+CREATE TABLE IF NOT EXISTS receipt_attached (
+  id TEXT PRIMARY KEY,
+  ledger INTEGER NOT NULL,
+  ledger_closed_at TEXT NOT NULL,
+  tx_hash TEXT NOT NULL,
+  event_id INTEGER NOT NULL,
+  payout_id INTEGER NOT NULL,
+  receipt_hash TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS receipt_attached_event_id ON receipt_attached(event_id);
 `;
