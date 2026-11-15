@@ -116,7 +116,7 @@ export const fixtures = {
       {
         name: "funds_released",
         topicFields: [u32(0), address(RECIPIENT)],
-        data: { payout_id: 0, amount: 25_000_000n, memo: "Venue hire" },
+        data: { payout_id: 0, line_id: 0, amount: 25_000_000n, memo: "Venue hire" },
       },
       overrides
     ),

@@ -28,6 +28,9 @@ export const ContractErrorCode = {
   InvalidFundingDeadline: 26,
   FundingDeadlineNotPassed: 27,
   FundingGoalReached: 28,
+  BudgetLocked: 29,
+  BudgetLineNotFound: 30,
+  BudgetLineExceeded: 31,
 } as const;
 
 const NAMES = Object.fromEntries(

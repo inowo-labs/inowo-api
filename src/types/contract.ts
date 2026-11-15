@@ -41,10 +41,21 @@ export interface Sponsorship {
   amount: string;
 }
 
+export interface BudgetLine {
+  id: number;
+  recipient: string;
+  amount: string;
+  purpose: string;
+  /** Total released against this line so far. */
+  released: string;
+}
+
 export interface Payout {
   id: number;
   recipient: string;
   amount: string;
+  /** The budget line this was released against. */
+  line_id: number;
   memo: string;
   /** Unix timestamp (seconds) of the release. */
   timestamp: number;

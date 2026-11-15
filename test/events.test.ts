@@ -204,6 +204,7 @@ describe("GET /api/events/:id/payouts", () => {
       {
         recipient: "GVENUE",
         amount: 25_000_000n,
+        line_id: 0,
         memo: "Venue hire",
         timestamp: 1_790_500_000n,
         receipt_hash: null,
@@ -212,6 +213,7 @@ describe("GET /api/events/:id/payouts", () => {
       {
         recipient: "GCREW",
         amount: 15_000_000n,
+        line_id: 1,
         memo: "AV crew",
         timestamp: 1_790_500_100n,
         receipt_hash: null,
@@ -231,6 +233,7 @@ describe("GET /api/events/:id/payouts", () => {
         id: 0,
         recipient: "GVENUE",
         amount: "25000000",
+        line_id: 0,
         memo: "Venue hire",
         timestamp: 1_790_500_000,
         receipt_hash: null,
@@ -240,6 +243,7 @@ describe("GET /api/events/:id/payouts", () => {
         id: 1,
         recipient: "GCREW",
         amount: "15000000",
+        line_id: 1,
         memo: "AV crew",
         timestamp: 1_790_500_100,
         receipt_hash: null,
@@ -254,6 +258,7 @@ describe("GET /api/events/:id/payouts", () => {
       get_payout: () => ({
         recipient: "GVENUE",
         amount: 25_000_000n,
+        line_id: 0,
         memo: "Venue hire",
         timestamp: 1_790_500_000n,
         receipt_hash: new Uint8Array(32).fill(0xab),
@@ -284,6 +289,48 @@ describe("GET /api/events/:id/payouts", () => {
     });
 
     const res = await request(app).get("/api/events/99/payouts");
+
+    expect(res.status).toBe(404);
+  });
+});
+
+describe("GET /api/events/:id/budget-lines", () => {
+  it("lists budget lines with ids, string amounts, and purposes", async () => {
+    const lines = [
+      { recipient: "GVENUE", amount: 400_000_000n, purpose: "Venue hire", released: 400_000_000n },
+      { recipient: "GCATERER", amount: 210_000_000n, purpose: "Catering", released: 0n },
+    ];
+    mockCalls({
+      budget_line_count: () => 2,
+      get_budget_line: () => lines.shift(),
+    });
+
+    const res = await request(app).get("/api/events/1/budget-lines");
+
+    expect(res.status).toBe(200);
+    expect(res.body).toEqual([
+      { id: 0, recipient: "GVENUE", amount: "400000000", purpose: "Venue hire", released: "400000000" },
+      { id: 1, recipient: "GCATERER", amount: "210000000", purpose: "Catering", released: "0" },
+    ]);
+  });
+
+  it("returns an empty list when no budget has been published", async () => {
+    mockCalls({ budget_line_count: () => 0 });
+
+    const res = await request(app).get("/api/events/0/budget-lines");
+
+    expect(res.status).toBe(200);
+    expect(res.body).toEqual([]);
+  });
+
+  it("returns 404 for a missing event", async () => {
+    mockCalls({
+      budget_line_count: () => {
+        throw new ContractError(ContractErrorCode.EventNotFound);
+      },
+    });
+
+    const res = await request(app).get("/api/events/99/budget-lines");
 
     expect(res.status).toBe(404);
   });

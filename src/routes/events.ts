@@ -4,7 +4,7 @@ import rateLimit from "express-rate-limit";
 import { simulateContractCall } from "../lib/stellar";
 import { getIndexerDb } from "../lib/indexerDb";
 import { idRange, parsePagination } from "../lib/pagination";
-import { serializeBigInt, serializeEvent, serializePayout } from "../lib/serialize";
+import { serializeBigInt, serializeBudgetLine, serializeEvent, serializePayout } from "../lib/serialize";
 import { isU32, validateEventId } from "../middleware/validateEventId";
 
 // Express 5 forwards rejected promises from async handlers to errorHandler,
@@ -112,6 +112,20 @@ router.get("/:id/payouts", validateEventId, async (req: Request, res: Response) 
     )
   );
   res.json(payouts);
+});
+
+router.get("/:id/budget-lines", validateEventId, async (req: Request, res: Response) => {
+  const id = u32(req.params.id as string);
+  const count = Number(await simulateContractCall("budget_line_count", id));
+  const lines = await Promise.all(
+    Array.from({ length: count }, async (_, lineId) =>
+      serializeBudgetLine(
+        lineId,
+        await simulateContractCall("get_budget_line", id, xdr.ScVal.scvU32(lineId))
+      )
+    )
+  );
+  res.json(lines);
 });
 
 router.get("/:id/refunds", validateEventId, async (req: Request, res: Response) => {

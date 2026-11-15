@@ -69,7 +69,14 @@ describe("decodeEvent", () => {
   it("decodes funds_released, including the memo string", () => {
     expect(decodeEvent(fixtures.fundsReleased())).toEqual({
       table: "funds_released",
-      columns: { event_id: 0, recipient: RECIPIENT, payout_id: 0, amount: "25000000", memo: "Venue hire" },
+      columns: {
+        event_id: 0,
+        recipient: RECIPIENT,
+        payout_id: 0,
+        line_id: 0,
+        amount: "25000000",
+        memo: "Venue hire",
+      },
     });
   });
 

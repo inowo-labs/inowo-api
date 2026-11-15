@@ -70,6 +70,7 @@ const DECODERS: Record<string, Decoder> = {
     event_id: Number(topics[1]),
     recipient: String(topics[2]),
     payout_id: Number(data.payout_id),
+    line_id: Number(data.line_id),
     amount: String(data.amount),
     memo: String(data.memo),
   }),
