@@ -80,6 +80,27 @@ describe("decodeEvent", () => {
     });
   });
 
+  it("decodes event_expired", () => {
+    expect(decodeEvent(fixtures.eventExpired())).toEqual({
+      table: "event_expired",
+      columns: { event_id: 0, balance: "120000000" },
+    });
+  });
+
+  it("decodes budget_line_added", () => {
+    expect(decodeEvent(fixtures.budgetLineAdded())).toEqual({
+      table: "budget_line_added",
+      columns: { event_id: 0, line_id: 0, recipient: RECIPIENT, amount: "400000000", purpose: "Venue hire" },
+    });
+  });
+
+  it("decodes receipt_attached, hex-encoding the receipt hash", () => {
+    expect(decodeEvent(fixtures.receiptAttached())).toEqual({
+      table: "receipt_attached",
+      columns: { event_id: 0, payout_id: 0, receipt_hash: "ab".repeat(32) },
+    });
+  });
+
   it("returns null for an event type it doesn't recognise, instead of throwing", () => {
     expect(decodeEvent(fixtures.unrecognised())).toBeNull();
   });
@@ -96,6 +117,9 @@ describe("decodeEvent", () => {
       "ticket_refunded",
       "sponsorship_refunded",
       "funds_released",
+      "event_expired",
+      "budget_line_added",
+      "receipt_attached",
     ];
     expect([...KNOWN_EVENT_TABLES].sort()).toEqual([...covered].sort());
   });

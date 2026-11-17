@@ -74,6 +74,22 @@ const DECODERS: Record<string, Decoder> = {
     amount: String(data.amount),
     memo: String(data.memo),
   }),
+  event_expired: (topics, data) => ({
+    event_id: Number(topics[1]),
+    balance: String(data.balance),
+  }),
+  budget_line_added: (topics, data) => ({
+    event_id: Number(topics[1]),
+    line_id: Number(data.line_id),
+    recipient: String(data.recipient),
+    amount: String(data.amount),
+    purpose: String(data.purpose),
+  }),
+  receipt_attached: (topics, data) => ({
+    event_id: Number(topics[1]),
+    payout_id: Number(data.payout_id),
+    receipt_hash: Buffer.from(data.receipt_hash as Uint8Array).toString("hex"),
+  }),
 };
 
 export const KNOWN_EVENT_TABLES = Object.keys(DECODERS);

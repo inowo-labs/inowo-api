@@ -120,6 +120,26 @@ export const fixtures = {
       },
       overrides
     ),
+  eventExpired: (overrides?: Partial<SorobanRpc.Api.EventResponse>) =>
+    makeEvent({ name: "event_expired", topicFields: [u32(0)], data: { balance: 120_000_000n } }, overrides),
+  budgetLineAdded: (overrides?: Partial<SorobanRpc.Api.EventResponse>) =>
+    makeEvent(
+      {
+        name: "budget_line_added",
+        topicFields: [u32(0)],
+        data: { line_id: 0, recipient: RECIPIENT, amount: 400_000_000n, purpose: "Venue hire" },
+      },
+      overrides
+    ),
+  receiptAttached: (overrides?: Partial<SorobanRpc.Api.EventResponse>) =>
+    makeEvent(
+      {
+        name: "receipt_attached",
+        topicFields: [u32(0)],
+        data: { payout_id: 0, receipt_hash: new Uint8Array(32).fill(0xab) },
+      },
+      overrides
+    ),
   unrecognised: (overrides?: Partial<SorobanRpc.Api.EventResponse>) =>
     makeEvent({ name: "some_future_event", topicFields: [u32(0)], data: { x: 1 } }, overrides),
 };
