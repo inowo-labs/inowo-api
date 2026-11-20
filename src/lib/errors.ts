@@ -31,6 +31,7 @@ export const ContractErrorCode = {
   BudgetLocked: 29,
   BudgetLineNotFound: 30,
   BudgetLineExceeded: 31,
+  BudgetExceedsGoal: 32,
 } as const;
 
 const NAMES = Object.fromEntries(
