@@ -50,6 +50,16 @@ export interface BudgetLine {
   released: string;
 }
 
+export interface OrganizerStats {
+  events_created: number;
+  events_ended: number;
+  events_cancelled: number;
+  /** Total USDC ever contributed (sponsorships + ticket sales) across every event. */
+  total_raised: string;
+  total_released: string;
+  total_refunded: string;
+}
+
 export interface Payout {
   id: number;
   recipient: string;

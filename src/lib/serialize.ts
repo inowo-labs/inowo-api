@@ -1,4 +1,4 @@
-import type { BudgetLine, Event, EventStatus, Payout } from "../types/contract";
+import type { BudgetLine, Event, EventStatus, OrganizerStats, Payout } from "../types/contract";
 
 /** Converts bigint values (i128/u64 from the contract) to strings so they survive JSON. */
 export function serializeBigInt(value: unknown): unknown {
@@ -47,6 +47,18 @@ export function serializeBudgetLine(id: number, raw: unknown): BudgetLine {
     amount: String(line.amount),
     purpose: String(line.purpose),
     released: String(line.released),
+  };
+}
+
+export function serializeOrganizerStats(raw: unknown): OrganizerStats {
+  const stats = serializeBigInt(raw) as Record<string, unknown>;
+  return {
+    events_created: Number(stats.events_created),
+    events_ended: Number(stats.events_ended),
+    events_cancelled: Number(stats.events_cancelled),
+    total_raised: String(stats.total_raised),
+    total_released: String(stats.total_released),
+    total_refunded: String(stats.total_refunded),
   };
 }
 

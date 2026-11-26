@@ -449,6 +449,79 @@ paths:
               schema: { $ref: "#/components/schemas/ErrorResponse" }
         "500": { $ref: "#/components/responses/InternalError" }
 
+  /api/addresses/{address}/organizer-stats:
+    get:
+      tags: [addresses]
+      summary: An organizer's on-chain track record
+      description: |
+        Events created/ended/cancelled and total USDC raised/released/
+        refunded, read straight from the contract's `OrganizerStats` —
+        correct even if the indexer db was never seeded. All zeros for an
+        address that has never organized anything.
+      operationId: getOrganizerStats
+      parameters:
+        - name: address
+          in: path
+          required: true
+          schema: { $ref: "#/components/schemas/StellarAddress" }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/OrganizerStats" }
+        "400":
+          description: address is not a valid Stellar public key
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ErrorResponse" }
+        "500": { $ref: "#/components/responses/InternalError" }
+        "502": { $ref: "#/components/responses/UpstreamUnavailable" }
+        "504": { $ref: "#/components/responses/UpstreamTimeout" }
+
+  /api/addresses/{address}/organizer-events:
+    get:
+      tags: [addresses]
+      summary: Event IDs an organizer has ever created
+      description: |
+        Oldest first, straight from the contract's `get_organizer_events`.
+        `total` is the organizer's `events_created` count.
+      operationId: getOrganizerEvents
+      parameters:
+        - name: address
+          in: path
+          required: true
+          schema: { $ref: "#/components/schemas/StellarAddress" }
+        - name: limit
+          in: query
+          schema: { type: integer, minimum: 1, maximum: 50, default: 20 }
+        - name: offset
+          in: query
+          schema: { type: integer, minimum: 0, default: 0 }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data, total, limit, offset]
+                properties:
+                  data:
+                    type: array
+                    items: { type: integer, minimum: 0, maximum: 4294967295 }
+                  total: { type: integer, minimum: 0 }
+                  limit: { type: integer, minimum: 1, maximum: 50 }
+                  offset: { type: integer, minimum: 0 }
+        "400":
+          description: address is not a valid Stellar public key, or limit/offset is out of range
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ErrorResponse" }
+        "500": { $ref: "#/components/responses/InternalError" }
+        "502": { $ref: "#/components/responses/UpstreamUnavailable" }
+        "504": { $ref: "#/components/responses/UpstreamTimeout" }
+
 components:
   parameters:
     EventId:
@@ -680,6 +753,19 @@ components:
         refunds:
           type: array
           items: { $ref: "#/components/schemas/RefundActivityItem" }
+
+    OrganizerStats:
+      type: object
+      required: [events_created, events_ended, events_cancelled, total_raised, total_released, total_refunded]
+      properties:
+        events_created: { type: integer, minimum: 0 }
+        events_ended: { type: integer, minimum: 0 }
+        events_cancelled: { type: integer, minimum: 0 }
+        total_raised:
+          allOf: [{ $ref: "#/components/schemas/Stroops" }]
+          description: Total USDC ever contributed (sponsorships + ticket sales) across every event this organizer created.
+        total_released: { $ref: "#/components/schemas/Stroops" }
+        total_refunded: { $ref: "#/components/schemas/Stroops" }
 
     ErrorResponse:
       type: object

@@ -96,6 +96,8 @@ The full machine-readable reference is an [OpenAPI 3.1](https://www.openapis.org
 | `GET` | `/api/events/:id/ticket-count` | Total tickets sold |
 | `GET` | `/api/events/:id/tickets/:ticketId` | Single ticket |
 | `GET` | `/api/addresses/:address/activity` | Everything an address has done — events organized, sponsorships, tickets, payouts received, refunds — each paginated independently with `?limit=`/`?offset=`; read from the [indexer](#indexer), not the chain directly |
+| `GET` | `/api/addresses/:address/organizer-stats` | An organizer's on-chain track record — events created/ended/cancelled, total raised/released/refunded — read straight from the contract, not the indexer |
+| `GET` | `/api/addresses/:address/organizer-events` | Event IDs an organizer has ever created, oldest first, one page (up to 50) with `?limit=`/`?offset=` |
 
 All write operations (buy ticket, sponsor, create event) happen directly on-chain through the contract — not through this API.
 
